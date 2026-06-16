@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习中心</title>
+<style>
+  :root {
+    --bg: #f9f9f7;
+    --surface: #ffffff;
+    --border: #e8e8e4;
+    --border-light: #f0f0ec;
+    --text: #1a1a18;
+    --text-muted: #888884;
+    --text-hint: #b8b8b4;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --s0: #b8b8b4;
+    --s1-border: #7fba4a;
+    --s2-border: #378add;
+    --s3-border: #ef9f27;
+    --s4-border: #e24b4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141412; --surface: #1e1e1c; --border: #2e2e2a;
+      --border-light: #242422; --text: #f0f0ec; --text-muted: #888884; --text-hint: #4a4a46;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; font-size: 14px; line-height: 1.6; }
+  .app { max-width: 760px; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+
+  header { margin-bottom: 3rem; }
+  h1 { font-size: 26px; font-weight: 500; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: var(--text-muted); }
+
+  .modules { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 3rem; }
+  @media (max-width: 480px) { .modules { grid-template-columns: 1fr; } }
+
+  .module-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; cursor: pointer; text-decoration: none; color: inherit; display: block; transition: border-color 0.15s, box-shadow 0.15s; }
+  .module-card:hover { border-color: var(--text-muted); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .module-icon { font-size: 22px; margin-bottom: 10px; }
+  .module-name { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+  .module-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+  .module-top-label { font-size: 11px; color: var(--text-hint); margin-bottom: 8px; }
+
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .lc-fill  { background: linear-gradient(90deg, var(--s1-border), var(--s4-border)); }
+  .llm-fill { background: linear-gradient(90deg, var(--s2-border), var(--s4-border)); }
+
+  .module-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mstat { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .legend-section { margin-bottom: 2rem; }
+  .legend-title { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .legend { display: flex; gap: 0; border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .legend-item { flex: 1; padding: 10px 8px; text-align: center; border-right: 0.5px solid var(--border); }
+  .legend-item:last-child { border-right: none; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; margin: 0 auto 5px; }
+  .legend-name { font-size: 12px; font-weight: 500; color: var(--text); display: block; }
+  .legend-desc { font-size: 11px; color: var(--text-hint); display: block; margin-top: 2px; }
+
+  .footer { font-size: 12px; color: var(--text-hint); text-align: center; margin-top: 3rem; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>学习中心</h1>
+    <p class="subtitle">秋招备战 · 知识状态追踪</p>
+  </header>
+
+  <div class="legend-section">
+    <div class="legend-title">状态说明</div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--s0)"></div>
+        <span class="legend-name">未标记</span>
+        <span class="legend-desc">未接触</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--s1-border)"></div>
+        <span class="legend-name">初识</span>
+        <span class="legend-desc">看懂合上忘</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--s2-border)"></div>
+        <span class="legend-name">能讲</span>
+        <span class="legend-desc">能完整复述</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--s3-border)"></div>
+        <span class="legend-name">能用</span>
+        <span class="legend-desc">能写/能应对追问</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--s4-border)"></div>
+        <span class="legend-name">题破/融汇</span>
+        <span class="legend-desc">内化成本能</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modules" id="modules"></div>
+
+  <div class="footer">数据保存在本地浏览器 · 各模块页面可独立导出备份</div>
+</div>
+
+<script>
+const MODULES = [
+  {
+    id: 'lc',
+    icon: '⚡',
+    name: 'LeetCode 刷题',
+    desc: '算法题追踪 · 17 大类 · 109 题',
+    href: 'leetcode.html',
+    key: 'lc_tracker_v1',
+    total: 109,
+    topLabel: '题破',
+    fillCls: 'lc-fill',
+  },
+  {
+    id: 'llm',
+    icon: '🧠',
+    name: 'LLM 八股文',
+    desc: '大模型知识地图 · 7 大模块',
+    href: 'llm.html',
+    key: 'llm_tracker_v1',
+    total: 35,
+    topLabel: '融汇',
+    fillCls: 'llm-fill',
+  },
+];
+
+const STATE_LABELS = ['未标记','初识','能讲','能用',''];
+const DOTS = ['var(--s0)','var(--s1-border)','var(--s2-border)','var(--s3-border)','var(--s4-border)'];
+
+function getStats(key, total) {
+  let st = {};
+  try { st = JSON.parse(localStorage.getItem(key)) || {}; } catch(e) {}
+  const counts = [0,0,0,0,0];
+  for (let i = 0; i < total; i++) {
+    // count by values in st, rest are 0
+  }
+  Object.values(st).forEach(v => { if (v >= 0 && v <= 4) counts[v]++; });
+  counts[0] = total - counts[1] - counts[2] - counts[3] - counts[4];
+  const done = counts[1] + counts[2] + counts[3] + counts[4];
+  return { counts, done };
+}
+
+function render() {
+  const el = document.getElementById('modules');
+  el.innerHTML = MODULES.map(m => {
+    const { counts, done } = getStats(m.key, m.total);
+    const pct = Math.round(done / m.total * 100);
+    return `<a class="module-card" href="${m.href}">
+      <div class="module-icon">${m.icon}</div>
+      <div class="module-name">${m.name}</div>
+      <div class="module-desc">${m.desc}</div>
+      <div class="module-top-label">已标记 ${done} / ${m.total} · ${pct}%</div>
+      <div class="progress-bar"><div class="progress-fill ${m.fillCls}" style="width:${pct}%"></div></div>
+      <div class="module-stats">
+        ${[1,2,3,4].map(i => counts[i] ? `<div class="mstat"><div class="dot" style="background:${DOTS[i]}"></div>${i===4?m.topLabel:STATE_LABELS[i]} ${counts[i]}</div>` : '').join('')}
+      </div>
+    </a>`;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>

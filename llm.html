@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM 八股文知识地图</title>
+<style>
+  :root {
+    --bg: #f9f9f7; --surface: #ffffff; --border: #e8e8e4; --border-light: #f0f0ec;
+    --text: #1a1a18; --text-muted: #888884; --text-hint: #b8b8b4;
+    --radius: 8px; --radius-lg: 12px;
+    --s1-bg: #eaf3de; --s1-text: #3b6d11; --s1-border: #7fba4a;
+    --s2-bg: #e6f1fb; --s2-text: #0c447c; --s2-border: #378add;
+    --s3-bg: #faeeda; --s3-text: #854f0b; --s3-border: #ef9f27;
+    --s4-bg: #fcebeb; --s4-text: #a32d2d; --s4-border: #e24b4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141412; --surface: #1e1e1c; --border: #2e2e2a;
+      --border-light: #242422; --text: #f0f0ec; --text-muted: #888884; --text-hint: #4a4a46;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; font-size: 14px; line-height: 1.6; }
+  .app { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .back { font-size: 13px; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1.5rem; }
+  .back:hover { color: var(--text); }
+  header { margin-bottom: 2rem; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text-muted); }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 1.75rem; }
+  .stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; cursor: pointer; transition: border-color 0.12s; }
+  .stat:hover { border-color: var(--text-muted); }
+  .stat.active { border-color: var(--text); }
+  .stat-num { font-size: 20px; font-weight: 500; display: block; }
+  .stat-label { font-size: 11px; color: var(--text-muted); }
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; }
+  .filter-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+  .chip { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border); background: transparent; cursor: pointer; color: var(--text-muted); transition: all 0.12s; }
+  .chip:hover { border-color: var(--text-muted); color: var(--text); }
+  .chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  input[type=search] { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-size: 13px; color: var(--text); outline: none; width: 160px; }
+  input[type=search]:focus { border-color: var(--text-muted); }
+  .section { margin-bottom: 1.5rem; }
+  .section-head { font-size: 12px; font-weight: 500; color: var(--text-muted); padding: 0 0 6px; border-bottom: 0.5px solid var(--border-light); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .section-head span { font-weight: 400; color: var(--text-hint); }
+  .row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); transition: background 0.1s; }
+  .row:hover { background: var(--surface); }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--border-light); color: var(--text-muted); white-space: nowrap; }
+  .name { flex: 1; font-size: 13px; color: var(--text); }
+  .status-btn { font-size: 11px; padding: 3px 9px; border-radius: 5px; border: 0.5px solid var(--border); background: transparent; color: var(--text-hint); cursor: pointer; white-space: nowrap; transition: all 0.12s; min-width: 62px; text-align: center; }
+  .status-btn:hover { border-color: var(--text-muted); }
+  .s1 { background: var(--s1-bg); color: var(--s1-text); border-color: var(--s1-border); }
+  .s2 { background: var(--s2-bg); color: var(--s2-text); border-color: var(--s2-border); }
+  .s3 { background: var(--s3-bg); color: var(--s3-text); border-color: var(--s3-border); }
+  .s4 { background: var(--s4-bg); color: var(--s4-text); border-color: var(--s4-border); }
+  .icon-btn { background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 5px 10px; cursor: pointer; color: var(--text-muted); font-size: 12px; transition: all 0.12s; white-space: nowrap; }
+  .icon-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .empty { text-align: center; padding: 3rem 0; color: var(--text-hint); font-size: 13px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 13px; padding: 8px 18px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 999; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← 学习中心</a>
+  <header>
+    <h1>LLM 八股文知识地图</h1>
+    <p class="subtitle">点击状态标签切换进度 · 未标记 → 初识 → 能讲 → 能用 → 融汇</p>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="filter-row">
+    <span class="filter-label">筛选</span>
+    <button class="chip on" onclick="setFilter('all',this)">全部</button>
+    <button class="chip" onclick="setFilter(0,this)">未标记</button>
+    <button class="chip" onclick="setFilter(1,this)">初识</button>
+    <button class="chip" onclick="setFilter(2,this)">能讲</button>
+    <button class="chip" onclick="setFilter(3,this)">能用</button>
+    <button class="chip" onclick="setFilter(4,this)">融汇</button>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <input type="search" id="search" placeholder="搜索知识点…" oninput="render()">
+      <button class="icon-btn" onclick="exportData()">导出</button>
+      <button class="icon-btn" onclick="document.getElementById('imp').click()">导入</button>
+      <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+
+  <div id="list"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const STATES = ['未标记','初识','能讲','能用','融汇'];
+const SCLS   = ['','s1','s2','s3','s4'];
+const KEY    = 'llm_tracker_v1';
+
+const DATA = [
+  {cat:'基础架构', items:[
+    {id:'arch-1', name:'Transformer 整体架构'},
+    {id:'arch-2', name:'Self-Attention 机制'},
+    {id:'arch-3', name:'Multi-Head Attention'},
+    {id:'arch-4', name:'位置编码 Positional Encoding'},
+    {id:'arch-5', name:'Feed-Forward Network'},
+    {id:'arch-6', name:'Layer Normalization'},
+    {id:'arch-7', name:'残差连接 Residual Connection'},
+    {id:'arch-8', name:'Encoder-Decoder vs Decoder-only'},
+  ]},
+  {cat:'训练', items:[
+    {id:'train-1', name:'预训练目标：CLM / MLM / Seq2Seq'},
+    {id:'train-2', name:'SFT 有监督微调'},
+    {id:'train-3', name:'RLHF 基本流程'},
+    {id:'train-4', name:'PPO 在 RLHF 中的应用'},
+    {id:'train-5', name:'DPO Direct Preference Optimization'},
+    {id:'train-6', name:'数据增强：Self-Instruct / Constitutional AI'},
+    {id:'train-7', name:'数据清洗流程'},
+  ]},
+  {cat:'推理优化', items:[
+    {id:'infer-1', name:'KV Cache 原理与作用'},
+    {id:'infer-2', name:'量化 Quantization（INT8 / INT4）'},
+    {id:'infer-3', name:'剪枝 Pruning'},
+    {id:'infer-4', name:'知识蒸馏 Distillation'},
+    {id:'infer-5', name:'低秩分解 LoRA'},
+    {id:'infer-6', name:'投机采样 Speculative Decoding'},
+    {id:'infer-7', name:'FlashAttention'},
+  ]},
+  {cat:'上下文与记忆', items:[
+    {id:'ctx-1', name:'上下文窗口限制与扩展方法'},
+    {id:'ctx-2', name:'RoPE 旋转位置编码'},
+    {id:'ctx-3', name:'RAG 检索增强生成'},
+    {id:'ctx-4', name:'长文本处理策略'},
+    {id:'ctx-5', name:'外部记忆与向量数据库'},
+  ]},
+  {cat:'Agent 与工具调用', items:[
+    {id:'agent-1', name:'ReAct 框架'},
+    {id:'agent-2', name:'Function Calling 机制'},
+    {id:'agent-3', name:'Tool Use 设计模式'},
+    {id:'agent-4', name:'Multi-Agent 协作'},
+    {id:'agent-5', name:'Chain-of-Thought 提示'},
+  ]},
+  {cat:'评估与安全', items:[
+    {id:'eval-1', name:'幻觉分类与来源'},
+    {id:'eval-2', name:'常见评估指标：BLEU / ROUGE / Perplexity'},
+    {id:'eval-3', name:'人工评估 vs 自动评估'},
+    {id:'eval-4', name:'对齐问题与安全风险'},
+    {id:'eval-5', name:'越狱攻击与防御'},
+  ]},
+  {cat:'应用架构', items:[
+    {id:'app-1', name:'Prompt Engineering 核心技巧'},
+    {id:'app-2', name:'零样本 / 少样本 / 微调范式选择'},
+    {id:'app-3', name:'向量检索与语义搜索'},
+    {id:'app-4', name:'流式输出 Streaming'},
+    {id:'app-5', name:'模型部署与推理服务架构'},
+  ]},
+];
+
+let st = {};
+try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e) {}
+let filter = 'all';
+function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
+function nextState(id) { st[id] = ((st[id] ?? 0) + 1) % 5; save(); render(); }
+function setFilter(f, btn) { filter = f; document.querySelectorAll('.chip').forEach(b => b.classList.remove('on')); btn.classList.add('on'); render(); }
+function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
+function exportData() {
+  const blob=new Blob([JSON.stringify(st,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`llm_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); toast('备份已导出');
+}
+function importData(e) {
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{ try{ st=JSON.parse(ev.target.result); save(); render(); toast('导入成功'); }catch{ toast('文件格式错误'); } };
+  reader.readAsText(file); e.target.value='';
+}
+function render() {
+  const q=document.getElementById('search').value.trim().toLowerCase();
+  const total_all=DATA.reduce((a,s)=>a+s.items.length,0);
+  const counts=[0,0,0,0,0];
+  DATA.forEach(s=>s.items.forEach(p=>counts[st[p.id]??0]++));
+  document.getElementById('stats').innerHTML=counts.map((n,i)=>
+    `<div class="stat${filter===(i===0?'all':i)?' active':''}" onclick="setFilter(${i===0?"'all'":i},this)">
+      <span class="stat-num">${n}</span><span class="stat-label">${STATES[i]}</span>
+    </div>`
+  ).join('');
+  let html='', total=0;
+  DATA.forEach(sec=>{
+    const rows=sec.items.filter(p=>{
+      const s=st[p.id]??0;
+      return (filter==='all'||s===filter)&&(!q||p.name.toLowerCase().includes(q));
+    });
+    if(!rows.length)return;
+    total+=rows.length;
+    html+=`<div class="section"><div class="section-head">${sec.cat}<span>${rows.length} 个知识点</span></div>`;
+    rows.forEach(p=>{
+      const s=st[p.id]??0;
+      html+=`<div class="row">
+        <span class="name">${p.name}</span>
+        <button class="status-btn ${SCLS[s]}" onclick="nextState('${p.id}')">${STATES[s]}</button>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  if(!total)html='<div class="empty">没有匹配的知识点</div>';
+  document.getElementById('list').innerHTML=html;
+}
+render();
+</script>
+</body>
+</html>
