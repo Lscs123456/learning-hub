@@ -73,9 +73,14 @@
 <body>
 <div class="app">
   <a class="back" href="index.html">← 学习中心</a>
-  <header>
-    <h1>LeetCode 刷题追踪</h1>
-    <p class="subtitle">点击状态标签切换进度 · 未标记 → 初识 → 能讲 → 能用 → 题破</p>
+  <header style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:2rem;">
+    <div>
+      <h1>LeetCode 刷题追踪</h1>
+      <p class="subtitle">点击状态标签切换进度 · 未标记 → 初识 → 能讲 → 能用 → 题破</p>
+    </div>
+    <button id="review-btn" class="icon-btn" onclick="openReview()" style="display:none;align-items:center;gap:6px;padding:8px 16px;font-size:13px;border-radius:8px;">
+      📌 今日复习 <span id="due-count" style="background:var(--text);color:var(--bg);border-radius:10px;padding:1px 7px;font-size:11px;"></span>
+    </button>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -102,7 +107,202 @@
 <script>
 const STATES = ['未标记','初识','能讲','能用','题破'];
 const SCLS   = ['','s1','s2','s3','s4'];
-const KEY    = 'lc_tracker_v1';
+const KEY    = 'lc_tracker_v2';
+
+// ── FSRS-4.5 默认参数 ──────────────────────────────────────────
+const W = [0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.0589,
+           1.5330,0.1544,0.9866,1.9813,0.0953,0.2975,2.2042,0.2407,
+           2.9466,0.5034,0.6567];
+const DECAY = -0.5, FACTOR = 0.9 ** (1/DECAY) - 1;
+const RATING = {Again:1, Hard:2, Good:3, Easy:4};
+
+function forgetting_curve(t, s) { return (1 + FACTOR * t / s) ** DECAY; }
+
+function init_stability(r) { return W[r-1]; }
+function init_difficulty(r) { return W[4] - Math.exp(W[5]*(r-1)) + 1; }
+function clamp_d(d) { return Math.min(10, Math.max(1, d)); }
+
+function next_interval(s, r=0.9) {
+  return Math.max(1, Math.round(s / FACTOR * (r ** (1/DECAY) - 1)));
+}
+
+function short_term_stability(s, r) {
+  return s * Math.exp(W[17] * (r - 3 + W[18]));
+}
+
+function long_term_difficulty(d, r) {
+  return clamp_d(W[6]*init_difficulty(4) + (1-W[6])*(d - W[7]*(r-3)));
+}
+
+function long_term_stability(d, s, r, t) {
+  const ret = r === RATING.Again;
+  const base = ret ? W[11] : W[8];
+  const ds = ret ? 0 : Math.exp(W[9]*(1-forgetting_curve(t,s)))-1;
+  const hard_pen = r === RATING.Hard ? W[15] : 1;
+  const easy_bon = r === RATING.Easy ? W[16] : 1;
+  return s * (Math.exp(base) * (11-d) * s**(-W[10]) * ds * hard_pen * easy_bon + 1);
+}
+
+// card state: 0=New, 1=Learning, 2=Review, 3=Relearning
+function fsrs_schedule(card, rating_str) {
+  const r = RATING[rating_str];
+  const now = today();
+  const t = card.last_review ? daysBetween(card.last_review, now) : 0;
+  let {stability:s, difficulty:d, state, step} = card;
+
+  if (state === 0) {
+    // New → Learning
+    s = init_stability(r);
+    d = init_difficulty(r);
+    if (r === RATING.Again) { step = 0; state = 1; }
+    else if (r === RATING.Hard) { step = 0; state = 1; }
+    else if (r === RATING.Good) { step = 1; state = 1; }
+    else { state = 2; } // Easy → straight to review
+  } else if (state === 1 || state === 3) {
+    // Learning / Relearning
+    s = short_term_stability(s, r);
+    if (r === RATING.Again) { step = 0; }
+    else if (r === RATING.Good) { step = (step||0) + 1; }
+    if (r === RATING.Easy || (step||0) >= 2) { state = 2; }
+    if (r === RATING.Hard) { /* stay */ }
+  } else {
+    // Review
+    d = long_term_difficulty(d, r);
+    s = r === RATING.Again
+      ? long_term_stability(d, s, r, t)
+      : long_term_stability(d, s, r, t);
+    state = r === RATING.Again ? 3 : 2;
+  }
+
+  const interval = (state === 2) ? next_interval(s) : (r === RATING.Again ? 1 : 1);
+  const due = addDays(now, interval);
+  return { stability: Math.max(0.1, s), difficulty: clamp_d(d), state, step: step||0, due, last_review: now, interval };
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+function addDays(d, n) {
+  const dt = new Date(d + 'T00:00:00');
+  dt.setDate(dt.getDate() + n);
+  return dt.toISOString().slice(0,10);
+}
+function daysBetween(a, b) {
+  return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000);
+}
+
+function newCard() { return { mastery:0, stability:0, difficulty:5, state:0, step:0, due: today(), last_review:null, interval:0 }; }
+
+// ── 存储 ──────────────────────────────────────────────────────
+let st = {};
+try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e) {}
+
+// 迁移旧数据 lc_tracker_v1
+(function migrate() {
+  let old = {};
+  try { old = JSON.parse(localStorage.getItem('lc_tracker_v1')) || {}; } catch(e) {}
+  Object.keys(old).forEach(id => {
+    if (!st[id]) {
+      st[id] = newCard();
+      st[id].mastery = old[id] ?? 0;
+      if (old[id] > 0) st[id].state = 2; // 已有掌握度视为进入复习
+    }
+  });
+})();
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
+
+// ── 今日复习计划 ───────────────────────────────────────────────
+let reviewModal = null;
+function getDueToday() {
+  const t = today();
+  const allProblems = DATA.flatMap(s => s.problems);
+  return allProblems.filter(p => {
+    const c = st[p.id];
+    if (!c) return false;
+    if (c.mastery === 4) return false; // 题破退出
+    return c.due <= t;
+  }).sort((a,b) => {
+    const ca = st[a.id], cb = st[b.id];
+    if (ca.mastery !== cb.mastery) return ca.mastery - cb.mastery;
+    return (ca.due||'') < (cb.due||'') ? -1 : 1;
+  });
+}
+
+function openReview() {
+  const due = getDueToday();
+  if (!due.length) { toast('🎉 今日无待复习题目'); return; }
+  let idx = 0;
+  showReviewCard(due, idx);
+}
+
+function showReviewCard(due, idx) {
+  if (reviewModal) reviewModal.remove();
+  if (idx >= due.length) {
+    toast(`✅ 今日 ${due.length} 道复习完成！`);
+    render(); return;
+  }
+  const p = due[idx];
+  const c = st[p.id] || newCard();
+  const modal = document.createElement('div');
+  modal.id = 'review-modal';
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;`;
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:28px 28px 22px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <span style="font-size:12px;color:var(--text-muted);">复习 ${idx+1} / ${due.length}</span>
+        <button onclick="closeReview()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;">✕</button>
+      </div>
+      <div style="margin-bottom:6px;display:flex;gap:8px;align-items:center;">
+        <span style="font-size:13px;color:var(--text-hint);">#${p.id}</span>
+        <span class="badge ${p.diff==='简单'?'easy':p.diff==='中等'?'med':'hard'}">${p.diff}</span>
+        <span class="status-btn ${SCLS[c.mastery]}" style="pointer-events:none;">${STATES[c.mastery]}</span>
+      </div>
+      <div style="font-size:18px;font-weight:500;margin-bottom:20px;">
+        <a href="https://leetcode.cn/problems/" target="_blank" style="color:var(--text);text-decoration:none;">${p.name} ↗</a>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">回忆这道题的解法，再评价掌握程度：</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
+        ${[['Again','完全忘了','#fcebeb','#a32d2d'],['Hard','想起来了但有漏洞','#faeeda','#854f0b'],['Good','基本能写出来','#e6f1fb','#0c447c'],['Easy','很流畅完全掌握','#eaf3de','#3b6d11']].map(([r,desc,bg,col])=>`
+          <button onclick="submitRating('${r}',${JSON.stringify(due).replace(/"/g,'&quot;')},${idx})"
+            style="background:${bg};color:${col};border:none;border-radius:8px;padding:10px 6px;cursor:pointer;font-size:12px;font-weight:500;line-height:1.4;">
+            ${r}<br><span style="font-size:10px;font-weight:400;opacity:.8;">${desc}</span>
+          </button>`).join('')}
+      </div>
+      <p style="font-size:11px;color:var(--text-hint);margin-top:14px;text-align:center;">
+        稳定性 ${c.stability.toFixed(1)} · 难度 ${c.difficulty.toFixed(1)} · 间隔 ${c.interval}天
+      </p>
+    </div>`;
+  document.body.appendChild(modal);
+  reviewModal = modal;
+}
+
+function submitRating(rating, due, idx) {
+  const p = due[idx];
+  if (!st[p.id]) st[p.id] = newCard();
+  const result = fsrs_schedule(st[p.id], rating);
+  st[p.id] = { ...st[p.id], ...result };
+  // 同步掌握度：Easy→能用，Good→能讲，Hard/Again 不升级
+  if (rating === 'Easy' && st[p.id].mastery < 3) st[p.id].mastery = Math.max(st[p.id].mastery, 3);
+  else if (rating === 'Good' && st[p.id].mastery < 2) st[p.id].mastery = 2;
+  save();
+  showReviewCard(due, idx + 1);
+}
+
+function closeReview() { if (reviewModal) { reviewModal.remove(); reviewModal = null; } }
+
+// ── 掌握度切换 ────────────────────────────────────────────────
+function nextState(id) {
+  if (!st[id]) st[id] = newCard();
+  const prev = st[id].mastery;
+  st[id].mastery = (prev + 1) % 5;
+  // 首次标记（未标记→初识）时初始化 FSRS
+  if (prev === 0 && st[id].state === 0) {
+    st[id].state = 1;
+    st[id].stability = init_stability(RATING.Good);
+    st[id].difficulty = init_difficulty(RATING.Good);
+    st[id].due = today();
+  }
+  save(); render();
+}
 
 const DATA = [
   {cat:'哈希', problems:[
@@ -169,18 +369,14 @@ const DATA = [
   ]},
 ];
 
-let st = {};
-try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e) {}
 let filter = 'all';
-function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
-function nextState(id) { st[id] = ((st[id] ?? 0) + 1) % 5; save(); render(); }
 function setFilter(f, btn) { filter = f; document.querySelectorAll('.chip').forEach(b => b.classList.remove('on')); btn.classList.add('on'); render(); }
 function diffCls(d) { return d==='简单'?'easy':d==='中等'?'med':'hard'; }
-function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
+function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
 function exportData() {
   const blob=new Blob([JSON.stringify(st,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`lc_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); toast('备份已导出');
+  a.download=`lc_fsrs_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); toast('备份已导出');
 }
 function importData(e) {
   const file=e.target.files[0]; if(!file)return;
@@ -191,7 +387,13 @@ function importData(e) {
 function render() {
   const q=document.getElementById('search').value.trim().toLowerCase();
   const counts=[0,0,0,0,0];
-  DATA.forEach(s=>s.problems.forEach(p=>counts[st[p.id]??0]++));
+  DATA.forEach(s=>s.problems.forEach(p=>counts[(st[p.id]?.mastery)??0]++));
+
+  // 今日到期数
+  const dueCount = getDueToday().length;
+  document.getElementById('due-count').textContent = dueCount;
+  document.getElementById('review-btn').style.display = dueCount > 0 ? 'inline-flex' : 'none';
+
   document.getElementById('stats').innerHTML=counts.map((n,i)=>
     `<div class="stat${filter===(i===0?'all':i)?' active':''}" onclick="setFilter(${i===0?"'all'":i},this)">
       <span class="stat-num">${n}</span><span class="stat-label">${STATES[i]}</span>
@@ -200,19 +402,21 @@ function render() {
   let html='', total=0;
   DATA.forEach(sec=>{
     const rows=sec.problems.filter(p=>{
-      const s=st[p.id]??0;
-      return (filter==='all'||s===filter)&&(!q||p.name.includes(q)||String(p.id).includes(q));
+      const m=(st[p.id]?.mastery)??0;
+      return (filter==='all'||m===filter)&&(!q||p.name.includes(q)||String(p.id).includes(q));
     });
     if(!rows.length)return;
     total+=rows.length;
     html+=`<div class="section"><div class="section-head">${sec.cat}<span>${rows.length} 题</span></div>`;
     rows.forEach(p=>{
-      const s=st[p.id]??0;
+      const c=st[p.id]; const m=c?.mastery??0;
+      const dueTag = c && c.due && c.mastery < 4 && c.mastery > 0
+        ? `<span style="font-size:10px;color:var(--text-hint);margin-left:4px;">${c.due<=today()?'📌到期':'📅'+c.due}</span>` : '';
       html+=`<div class="row">
         <span class="num">${p.id}</span>
-        <span class="name"><a href="https://leetcode.cn/problems/" target="_blank">${p.name}</a></span>
+        <span class="name"><a href="https://leetcode.cn/problems/" target="_blank">${p.name}</a>${dueTag}</span>
         <span class="badge ${diffCls(p.diff)}">${p.diff}</span>
-        <button class="status-btn ${SCLS[s]}" onclick="nextState(${p.id})">${STATES[s]}</button>
+        <button class="status-btn ${SCLS[m]}" onclick="nextState(${p.id})">${STATES[m]}</button>
       </div>`;
     });
     html+='</div>';
