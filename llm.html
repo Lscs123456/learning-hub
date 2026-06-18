@@ -25,7 +25,7 @@
   .app { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
   .back { font-size: 13px; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1.5rem; }
   .back:hover { color: var(--text); }
-  header { margin-bottom: 2rem; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 2rem; }
   h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
   .subtitle { font-size: 13px; color: var(--text-muted); }
   .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 1.75rem; }
@@ -46,8 +46,8 @@
   .section-head span { font-weight: 400; color: var(--text-hint); }
   .row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); transition: background 0.1s; }
   .row:hover { background: var(--surface); }
-  .tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--border-light); color: var(--text-muted); white-space: nowrap; }
   .name { flex: 1; font-size: 13px; color: var(--text); }
+  .due-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--s3-bg); color: var(--s3-text); white-space: nowrap; }
   .status-btn { font-size: 11px; padding: 3px 9px; border-radius: 5px; border: 0.5px solid var(--border); background: transparent; color: var(--text-hint); cursor: pointer; white-space: nowrap; transition: all 0.12s; min-width: 62px; text-align: center; }
   .status-btn:hover { border-color: var(--text-muted); }
   .s1 { background: var(--s1-bg); color: var(--s1-text); border-color: var(--s1-border); }
@@ -56,6 +56,7 @@
   .s4 { background: var(--s4-bg); color: var(--s4-text); border-color: var(--s4-border); }
   .icon-btn { background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 5px 10px; cursor: pointer; color: var(--text-muted); font-size: 12px; transition: all 0.12s; white-space: nowrap; }
   .icon-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .review-btn { display: none; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 8px; }
   .empty { text-align: center; padding: 3rem 0; color: var(--text-hint); font-size: 13px; }
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 13px; padding: 8px 18px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 999; }
   .toast.show { opacity: 1; }
@@ -65,8 +66,13 @@
 <div class="app">
   <a class="back" href="index.html">← 学习中心</a>
   <header>
-    <h1>LLM 八股文知识地图</h1>
-    <p class="subtitle">点击状态标签切换进度 · 未标记 → 初识 → 能讲 → 能用 → 融汇</p>
+    <div>
+      <h1>LLM 八股文知识地图</h1>
+      <p class="subtitle">点击状态标签切换掌握度 · 未接触 → 初识 → 能讲 → 能用 → 融汇</p>
+    </div>
+    <button id="review-btn" class="icon-btn review-btn" onclick="openReview()">
+      📌 今日复习 <span id="due-count" style="background:var(--text);color:var(--bg);border-radius:10px;padding:1px 7px;font-size:11px;"></span>
+    </button>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -74,11 +80,12 @@
   <div class="filter-row">
     <span class="filter-label">筛选</span>
     <button class="chip on" onclick="setFilter('all',this)">全部</button>
-    <button class="chip" onclick="setFilter(0,this)">未标记</button>
+    <button class="chip" onclick="setFilter(0,this)">未接触</button>
     <button class="chip" onclick="setFilter(1,this)">初识</button>
     <button class="chip" onclick="setFilter(2,this)">能讲</button>
     <button class="chip" onclick="setFilter(3,this)">能用</button>
     <button class="chip" onclick="setFilter(4,this)">融汇</button>
+    <button class="chip" onclick="setFilter('due',this)">⏰ 待复习</button>
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <input type="search" id="search" placeholder="搜索知识点…" oninput="render()">
       <button class="icon-btn" onclick="exportData()">导出</button>
@@ -91,58 +98,169 @@
 </div>
 <div class="toast" id="toast"></div>
 <script>
-const STATES = ['未标记','初识','能讲','能用','融汇'];
+const STATES = ['未接触','初识','能讲','能用','融汇'];
 const SCLS   = ['','s1','s2','s3','s4'];
-const KEY    = 'llm_tracker_v1';
+const KEY    = 'llm_tracker_v2';
 
-const DATA = [
-  {cat:'基础架构', items:[
-    {id:'arch-1', name:'Transformer 整体架构'},
-    {id:'arch-2', name:'Self-Attention 机制'},
-    {id:'arch-3', name:'位置编码 Positional Encoding'},
-    {id:'arch-4', name:'预训练任务'},
-  ]},
-  {cat:'训练', items:[
-    {id:'train-1', name:'预训练目标'},
-    {id:'train-2', name:'微调'},
-    {id:'train-3', name:'RLHF与对齐'},
-    {id:'train-4', name:'缩放定律'},
-  ]},
-  {cat:'推理优化', items:[
-    {id:'infer-1', name:'KV Cache'},
-    {id:'infer-2', name:'批处理'},
-    {id:'infer-3', name:'模型压缩'},
-    {id:'infer-4', name:'其他优化'},
-  ]},
-  {cat:'上下文与记忆', items:[
-    {id:'ctx-1', name:'上下文窗口'},
-    {id:'ctx-2', name:'RAG'},
-  ]},
-  {cat:'Agent 与工具调用', items:[
-    {id:'agent-1', name:'Agent基础'},
-    {id:'agent-4', name:'Multi-Agent'},
-  ]},
-  {cat:'评估与安全', items:[
-    {id:'eval-1', name:'模型评估'},
-    {id:'eval-2', name:'安全对齐'},
-  ]},
-  {cat:'应用架构', items:[
-    {id:'app-1', name:'Prompt工程'},
-    {id:'app-2', name:'部署'},
-  ]},
-];
+// ── FSRS-4.5 ──────────────────────────────────────────────────
+const W = [0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.0589,
+           1.5330,0.1544,0.9866,1.9813,0.0953,0.2975,2.2042,0.2407,
+           2.9466,0.5034,0.6567];
+const DECAY = -0.5, FACTOR = 0.9 ** (1/DECAY) - 1;
+const RATING = {Again:1, Hard:2, Good:3, Easy:4};
+
+function forgetting_curve(t, s) { return (1 + FACTOR * t / s) ** DECAY; }
+function init_stability(r) { return W[r-1]; }
+function init_difficulty(r) { return W[4] - Math.exp(W[5]*(r-1)) + 1; }
+function clamp_d(d) { return Math.min(10, Math.max(1, d)); }
+function next_interval(s, r=0.9) { return Math.max(1, Math.round(s / FACTOR * (r ** (1/DECAY) - 1))); }
+function short_term_stability(s, r) { return s * Math.exp(W[17] * (r - 3 + W[18])); }
+function long_term_difficulty(d, r) { return clamp_d(W[6]*init_difficulty(4) + (1-W[6])*(d - W[7]*(r-3))); }
+function long_term_stability(d, s, r, t) {
+  const ret = r === RATING.Again;
+  const base = ret ? W[11] : W[8];
+  const ds = ret ? 0 : Math.exp(W[9]*(1-forgetting_curve(t,s)))-1;
+  const hard_pen = r === RATING.Hard ? W[15] : 1;
+  const easy_bon = r === RATING.Easy ? W[16] : 1;
+  return s * (Math.exp(W[8]) * (11-d) * s**(-W[9]) * (Math.exp((1-forgetting_curve(t,s))*W[10])-1) * hard_pen * easy_bon + 1);
+}
+
+function fsrs_schedule(card, rating_str) {
+  const r = RATING[rating_str];
+  const now = today();
+  const t = card.last_review ? daysBetween(card.last_review, now) : 0;
+  let {stability:s, difficulty:d, state, step} = card;
+  if (state === 0) {
+    s = init_stability(r); d = init_difficulty(r);
+    if (r === RATING.Again) { step=0; state=1; }
+    else if (r === RATING.Hard) { step=0; state=1; }
+    else if (r === RATING.Good) { step=1; state=1; }
+    else { state=2; }
+  } else if (state === 1 || state === 3) {
+    s = short_term_stability(s, r);
+    if (r === RATING.Again) { step=0; }
+    else if (r === RATING.Good) { step=(step||0)+1; }
+    if (r === RATING.Easy || (step||0) >= 2) { state=2; }
+  } else {
+    d = long_term_difficulty(d, r);
+    s = long_term_stability(d, s, r, t);
+    state = r === RATING.Again ? 3 : 2;
+  }
+  const interval = (state === 2) ? next_interval(s) : 1;
+  const due = addDays(now, interval);
+  return { stability: Math.max(0.1,s), difficulty: clamp_d(d), state, step:step||0, due, last_review:now, interval };
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+function addDays(d, n) { const dt=new Date(d+'T00:00:00'); dt.setDate(dt.getDate()+n); return dt.toISOString().slice(0,10); }
+function daysBetween(a, b) { return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
+function newCard() { return { mastery:0, stability:0, difficulty:5, state:0, step:0, due:today(), last_review:null, interval:0 }; }
+
+// ── 数据 ──────────────────────────────────────────────────────
+const DATA = [{"cat": "基础", "key": "01", "items": [{"id": "01-1-llm概念", "name": "1.llm概念"}, {"id": "01-1-分词", "name": "1.分词"}, {"id": "01-1-激活函数", "name": "1.激活函数"}, {"id": "01-1-语言模型", "name": "1.语言模型"}, {"id": "01-2-jieba分词用法及原理", "name": "2.jieba分词用法及原理"}, {"id": "01-3-词性标注", "name": "3.词性标注"}, {"id": "01-4-句法分析", "name": "4.句法分析"}, {"id": "01-5-词向量", "name": "5.词向量"}, {"id": "01-llm为什么decoder-only架构", "name": "LLM为什么Decoder only架构"}, {"id": "01-nlp三大特征抽取器-cnn-rnn-tf-", "name": "NLP三大特征抽取器（CNN/RNN/TF）"}, {"id": "01-nlp面试题", "name": "NLP面试题"}, {"id": "01-word2vec", "name": "Word2Vec"}]}, {"cat": "架构", "key": "02", "items": [{"id": "02-1-moe论文", "name": "1.MoE论文"}, {"id": "02-1-attention", "name": "1.attention"}, {"id": "02-2-moe经典论文简牍", "name": "2.MoE经典论文简牍"}, {"id": "02-2-layer-normalization", "name": "2.layer\\_normalization"}, {"id": "02-3-llm-moe--switch-transformers", "name": "3.LLM MoE ：Switch Transformers"}, {"id": "02-3-位置编码", "name": "3.位置编码"}, {"id": "02-4-tokenize分词", "name": "4.tokenize分词"}, {"id": "02-5-token及模型参数", "name": "5.token及模型参数"}, {"id": "02-6-激活函数", "name": "6.激活函数"}, {"id": "02-mha-mqa-gqa", "name": "MHA\\_MQA\\_GQA"}, {"id": "02-transformer架构细节", "name": "Transformer架构细节"}, {"id": "02-bert变种", "name": "bert变种"}, {"id": "02-bert细节", "name": "bert细节"}, {"id": "02-chatglm系列模型", "name": "chatglm系列模型"}, {"id": "02-llama-2代码详解", "name": "llama 2代码详解"}, {"id": "02-llama-3", "name": "llama 3"}, {"id": "02-llama系列模型", "name": "llama系列模型"}, {"id": "02-解码策略-top-k---top-p---temperature-", "name": "解码策略（Top-k & Top-p & Temperature）"}]}, {"cat": "训练数据", "key": "03", "items": [{"id": "03-数据格式", "name": "数据格式"}]}, {"cat": "分布式训练", "key": "04", "items": [{"id": "04-1-显存问题", "name": "1.显存问题"}, {"id": "04-1-概述", "name": "1.概述"}, {"id": "04-2-数据并行", "name": "2.数据并行"}, {"id": "04-3-流水线并行", "name": "3.流水线并行"}, {"id": "04-4-张量并行", "name": "4.张量并行"}, {"id": "04-5-序列并行", "name": "5.序列并行"}, {"id": "04-6-多维度混合并行", "name": "6.多维度混合并行"}, {"id": "04-7-自动并行", "name": "7.自动并行"}, {"id": "04-8-moe并行", "name": "8.moe并行"}, {"id": "04-9-总结", "name": "9.总结"}, {"id": "04-deepspeed介绍", "name": "deepspeed介绍"}, {"id": "04-分布式训练题目", "name": "分布式训练题目"}]}, {"cat": "微调", "key": "05", "items": [{"id": "05-1-基本概念", "name": "1.基本概念"}, {"id": "05-1-微调", "name": "1.微调"}, {"id": "05-2-prompting", "name": "2.prompting"}, {"id": "05-2-预训练", "name": "2.预训练"}, {"id": "05-3-adapter-tuning", "name": "3.adapter-tuning"}, {"id": "05-4-lora", "name": "4.lora"}, {"id": "05-5-总结", "name": "5.总结"}, {"id": "05-chatglm3微调", "name": "ChatGLM3微调"}, {"id": "05-llama2微调", "name": "llama2微调"}]}, {"cat": "推理优化", "key": "06", "items": [{"id": "06-0-llm推理框架简单总结", "name": "0.llm推理框架简单总结"}, {"id": "06-1-vllm", "name": "1.vllm"}, {"id": "06-1-推理", "name": "1.推理"}, {"id": "06-2-text-generation-inference", "name": "2.text\\_generation\\_inference"}, {"id": "06-3-faster-transformer", "name": "3.faster\\_transformer"}, {"id": "06-4-trt-llm", "name": "4.trt\\_llm"}, {"id": "06-llm推理常见参数", "name": "LLM 推理常见参数"}, {"id": "06-llm推理优化技术", "name": "llm推理优化技术"}]}, {"cat": "对齐与RL", "key": "07", "items": [{"id": "07-1-rlhf相关", "name": "1.rlhf相关"}, {"id": "07-2-强化学习", "name": "2.强化学习"}, {"id": "07-dpo", "name": "DPO"}, {"id": "07-大模型rlhf-ppo原理与源码解读", "name": "大模型RLHF：PPO原理与源码解读"}, {"id": "07-策略梯度-pg-", "name": "策略梯度（pg）"}, {"id": "07-近端策略优化-ppo-", "name": "近端策略优化(ppo)"}]}, {"cat": "RAG", "key": "08", "items": [{"id": "08-rag-检索增强生成-技术", "name": "rag（检索增强生成）技术"}, {"id": "08-大模型agent技术", "name": "大模型agent技术"}, {"id": "08-检索增强llm", "name": "检索增强llm"}]}, {"cat": "评估", "key": "09", "items": [{"id": "09-1-大模型幻觉", "name": "1.大模型幻觉"}, {"id": "09-1-评测", "name": "1.评测"}, {"id": "09-2-幻觉来源与缓解", "name": "2.幻觉来源与缓解"}]}, {"cat": "应用层", "key": "10", "items": [{"id": "10-1-langchain", "name": "1.langchain"}, {"id": "10-1-思维链-cot-", "name": "1.思维链（cot）"}]}, {"cat": "参考课程", "key": "98", "items": [{"id": "98-1-nlp-大模型基础", "name": "1.NLP&大模型基础"}, {"id": "98-2-神经网络基础", "name": "2.神经网络基础"}, {"id": "98-3-transformer基础", "name": "3.Transformer基础"}, {"id": "98-4-prompt-tuning---delta-tuning", "name": "4.Prompt Tuning & Delta Tuning"}, {"id": "98-5-高效训练-模型压缩", "name": "5.高效训练&模型压缩"}, {"id": "98-6-文本理解和生成大模型", "name": "6.文本理解和生成大模型"}, {"id": "98-清华大模型公开课", "name": "清华大模型公开课"}]}];
 
 let st = {};
 try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e) {}
-let filter = 'all';
 function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
-function nextState(id) { st[id] = ((st[id] ?? 0) + 1) % 5; save(); render(); }
-function setFilter(f, btn) { filter = f; document.querySelectorAll('.chip').forEach(b => b.classList.remove('on')); btn.classList.add('on'); render(); }
+
+function getCard(id) { if (!st[id]) st[id] = newCard(); return st[id]; }
+
+// ── 今日复习 ──────────────────────────────────────────────────
+let reviewModal = null;
+
+function getDueToday() {
+  const t = today();
+  return DATA.flatMap(s => s.items).filter(p => {
+    const c = st[p.id];
+    if (!c || c.mastery === 0 || c.mastery === 4) return false;
+    return c.due <= t;
+  }).sort((a,b) => {
+    const ca=st[a.id], cb=st[b.id];
+    if (ca.mastery !== cb.mastery) return ca.mastery - cb.mastery;
+    return (ca.due||'') < (cb.due||'') ? -1 : 1;
+  });
+}
+
+function openReview() {
+  const due = getDueToday();
+  if (!due.length) { toast('🎉 今日无待复习条目'); return; }
+  showReviewCard(due, 0);
+}
+
+function showReviewCard(due, idx) {
+  if (reviewModal) reviewModal.remove();
+  if (idx >= due.length) { toast(`✅ 今日 ${due.length} 条复习完成！`); render(); return; }
+  const p = due[idx];
+  const c = getCard(p.id);
+  const modal = document.createElement('div');
+  modal.id = 'review-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:28px 28px 22px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <span style="font-size:12px;color:var(--text-muted);">复习 ${idx+1} / ${due.length}</span>
+        <button onclick="closeReview()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;">✕</button>
+      </div>
+      <div style="margin-bottom:6px;">
+        <span class="status-btn ${SCLS[c.mastery]}" style="pointer-events:none;">${STATES[c.mastery]}</span>
+      </div>
+      <div style="font-size:18px;font-weight:500;margin-bottom:20px;">${p.name}</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">回忆这个知识点，再评价掌握情况：</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
+        ${[['Again','完全忘了','#fcebeb','#a32d2d'],['Hard','想起来但有漏洞','#faeeda','#854f0b'],['Good','基本能讲清楚','#e6f1fb','#0c447c'],['Easy','非常流畅','#eaf3de','#3b6d11']].map(([r,desc,bg,col])=>`
+          <button onclick="submitRating('${r}',${JSON.stringify(due).replace(/"/g,'&quot;')},${idx})"
+            style="background:${bg};color:${col};border:none;border-radius:8px;padding:10px 6px;cursor:pointer;font-size:12px;font-weight:500;line-height:1.4;">
+            ${r}<br><span style="font-size:10px;font-weight:400;opacity:.8;">${desc}</span>
+          </button>`).join('')}
+      </div>
+      <p style="font-size:11px;color:var(--text-hint);margin-top:14px;text-align:center;">
+        稳定性 ${c.stability.toFixed(1)} · 难度 ${c.difficulty.toFixed(1)} · 间隔 ${c.interval}天
+      </p>
+    </div>`;
+  document.body.appendChild(modal);
+  reviewModal = modal;
+}
+
+function submitRating(rating, due, idx) {
+  const p = due[idx];
+  const card = getCard(p.id);
+  const result = fsrs_schedule(card, rating);
+  st[p.id] = { ...card, ...result };
+  if (rating === 'Easy' && st[p.id].mastery < 3) st[p.id].mastery = Math.max(st[p.id].mastery, 3);
+  else if (rating === 'Good' && st[p.id].mastery < 2) st[p.id].mastery = 2;
+  save();
+  showReviewCard(due, idx+1);
+}
+
+function closeReview() { if (reviewModal) { reviewModal.remove(); reviewModal = null; } }
+
+// ── 掌握度切换 ────────────────────────────────────────────────
+function nextState(id) {
+  const card = getCard(id);
+  const prev = card.mastery;
+  card.mastery = (prev + 1) % 5;
+  // 首次标记为初识时，初始化FSRS卡片进入学习队列
+  if (prev === 0 && card.mastery === 1) {
+    card.state = 0;
+    card.due = today();
+    card.last_review = null;
+  }
+  save(); render();
+}
+
+// ── 筛选 & 渲染 ───────────────────────────────────────────────
+let filter = 'all';
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
 function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
 function exportData() {
   const blob=new Blob([JSON.stringify(st,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`llm_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); toast('备份已导出');
+  a.download=`llm_backup_${today()}.json`; a.click(); toast('备份已导出');
 }
 function importData(e) {
   const file=e.target.files[0]; if(!file)return;
@@ -150,37 +268,56 @@ function importData(e) {
   reader.onload=ev=>{ try{ st=JSON.parse(ev.target.result); save(); render(); toast('导入成功'); }catch{ toast('文件格式错误'); } };
   reader.readAsText(file); e.target.value='';
 }
+
 function render() {
-  const q=document.getElementById('search').value.trim().toLowerCase();
-  const total_all=DATA.reduce((a,s)=>a+s.items.length,0);
-  const counts=[0,0,0,0,0];
-  DATA.forEach(s=>s.items.forEach(p=>counts[st[p.id]??0]++));
-  document.getElementById('stats').innerHTML=counts.map((n,i)=>
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const t = today();
+  const counts = [0,0,0,0,0];
+  DATA.forEach(s => s.items.forEach(p => counts[getCard(p.id).mastery]++));
+
+  // stats bar
+  document.getElementById('stats').innerHTML = counts.map((n,i) =>
     `<div class="stat${filter===(i===0?'all':i)?' active':''}" onclick="setFilter(${i===0?"'all'":i},this)">
       <span class="stat-num">${n}</span><span class="stat-label">${STATES[i]}</span>
     </div>`
   ).join('');
-  let html='', total=0;
-  DATA.forEach(sec=>{
-    const rows=sec.items.filter(p=>{
-      const s=st[p.id]??0;
-      return (filter==='all'||s===filter)&&(!q||p.name.toLowerCase().includes(q));
+
+  // due button
+  const due = getDueToday();
+  const reviewBtn = document.getElementById('review-btn');
+  if (due.length > 0) {
+    reviewBtn.style.display = 'inline-flex';
+    document.getElementById('due-count').textContent = due.length;
+  } else {
+    reviewBtn.style.display = 'none';
+  }
+
+  let html = '', total = 0;
+  DATA.forEach(sec => {
+    const rows = sec.items.filter(p => {
+      const c = getCard(p.id);
+      const isDue = c.mastery > 0 && c.mastery < 4 && c.due <= t;
+      if (filter === 'due') return isDue && (!q || p.name.toLowerCase().includes(q));
+      return (filter === 'all' || c.mastery === filter) && (!q || p.name.toLowerCase().includes(q));
     });
-    if(!rows.length)return;
-    total+=rows.length;
-    html+=`<div class="section"><div class="section-head">${sec.cat}<span>${rows.length} 个知识点</span></div>`;
-    rows.forEach(p=>{
-      const s=st[p.id]??0;
-      html+=`<div class="row">
+    if (!rows.length) return;
+    total += rows.length;
+    html += `<div class="section"><div class="section-head">${sec.cat}<span>${rows.length} 个知识点</span></div>`;
+    rows.forEach(p => {
+      const c = getCard(p.id);
+      const isDue = c.mastery > 0 && c.mastery < 4 && c.due <= t;
+      html += `<div class="row">
         <span class="name">${p.name}</span>
-        <button class="status-btn ${SCLS[s]}" onclick="nextState('${p.id}')">${STATES[s]}</button>
+        ${isDue ? '<span class="due-badge">待复习</span>' : ''}
+        <button class="status-btn ${SCLS[c.mastery]}" onclick="nextState('${p.id}')">${STATES[c.mastery]}</button>
       </div>`;
     });
-    html+='</div>';
+    html += '</div>';
   });
-  if(!total)html='<div class="empty">没有匹配的知识点</div>';
-  document.getElementById('list').innerHTML=html;
+  if (!total) html = '<div class="empty">没有匹配的知识点</div>';
+  document.getElementById('list').innerHTML = html;
 }
+
 render();
 </script>
 </body>
