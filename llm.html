@@ -5,61 +5,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LLM 八股文知识地图</title>
 <style>
+:root {
+  --bg: #f9f9f7; --surface: #ffffff; --border: #e8e8e4; --border-light: #f0f0ec;
+  --text: #1a1a18; --text-muted: #888884; --text-hint: #b8b8b4;
+  --radius: 8px; --radius-lg: 12px;
+  --s1-bg: #eaf3de; --s1-text: #3b6d11; --s1-border: #7fba4a;
+  --s2-bg: #e6f1fb; --s2-text: #0c447c; --s2-border: #378add;
+  --s3-bg: #faeeda; --s3-text: #854f0b; --s3-border: #ef9f27;
+  --s4-bg: #fcebeb; --s4-text: #a32d2d; --s4-border: #e24b4a;
+}
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #f9f9f7; --surface: #ffffff; --border: #e8e8e4; --border-light: #f0f0ec;
-    --text: #1a1a18; --text-muted: #888884; --text-hint: #b8b8b4;
-    --radius: 8px; --radius-lg: 12px;
-    --s1-bg: #eaf3de; --s1-text: #3b6d11; --s1-border: #7fba4a;
-    --s2-bg: #e6f1fb; --s2-text: #0c447c; --s2-border: #378add;
-    --s3-bg: #faeeda; --s3-text: #854f0b; --s3-border: #ef9f27;
-    --s4-bg: #fcebeb; --s4-text: #a32d2d; --s4-border: #e24b4a;
+    --bg: #141412; --surface: #1e1e1c; --border: #2e2e2a;
+    --border-light: #242422; --text: #f0f0ec; --text-muted: #888884; --text-hint: #4a4a46;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #141412; --surface: #1e1e1c; --border: #2e2e2a;
-      --border-light: #242422; --text: #f0f0ec; --text-muted: #888884; --text-hint: #4a4a46;
-    }
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; font-size: 14px; line-height: 1.6; }
-  .app { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-  .back { font-size: 13px; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1.5rem; }
-  .back:hover { color: var(--text); }
-  header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 2rem; }
-  h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
-  .subtitle { font-size: 13px; color: var(--text-muted); }
-  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 1.75rem; }
-  .stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; cursor: pointer; transition: border-color 0.12s; }
-  .stat:hover { border-color: var(--text-muted); }
-  .stat.active { border-color: var(--text); }
-  .stat-num { font-size: 20px; font-weight: 500; display: block; }
-  .stat-label { font-size: 11px; color: var(--text-muted); }
-  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; }
-  .filter-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
-  .chip { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border); background: transparent; cursor: pointer; color: var(--text-muted); transition: all 0.12s; }
-  .chip:hover { border-color: var(--text-muted); color: var(--text); }
-  .chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
-  input[type=search] { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-size: 13px; color: var(--text); outline: none; width: 160px; }
-  input[type=search]:focus { border-color: var(--text-muted); }
-  .section { margin-bottom: 1.5rem; }
-  .section-head { font-size: 12px; font-weight: 500; color: var(--text-muted); padding: 0 0 6px; border-bottom: 0.5px solid var(--border-light); margin-bottom: 6px; display: flex; justify-content: space-between; }
-  .section-head span { font-weight: 400; color: var(--text-hint); }
-  .row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); transition: background 0.1s; }
-  .row:hover { background: var(--surface); }
-  .name { flex: 1; font-size: 13px; color: var(--text); }
-  .due-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--s3-bg); color: var(--s3-text); white-space: nowrap; }
-  .status-btn { font-size: 11px; padding: 3px 9px; border-radius: 5px; border: 0.5px solid var(--border); background: transparent; color: var(--text-hint); cursor: pointer; white-space: nowrap; transition: all 0.12s; min-width: 62px; text-align: center; }
-  .status-btn:hover { border-color: var(--text-muted); }
-  .s1 { background: var(--s1-bg); color: var(--s1-text); border-color: var(--s1-border); }
-  .s2 { background: var(--s2-bg); color: var(--s2-text); border-color: var(--s2-border); }
-  .s3 { background: var(--s3-bg); color: var(--s3-text); border-color: var(--s3-border); }
-  .s4 { background: var(--s4-bg); color: var(--s4-text); border-color: var(--s4-border); }
-  .icon-btn { background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 5px 10px; cursor: pointer; color: var(--text-muted); font-size: 12px; transition: all 0.12s; white-space: nowrap; }
-  .icon-btn:hover { border-color: var(--text-muted); color: var(--text); }
-  .review-btn { display: none; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 8px; }
-  .empty { text-align: center; padding: 3rem 0; color: var(--text-hint); font-size: 13px; }
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 13px; padding: 8px 18px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 999; }
-  .toast.show { opacity: 1; }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; font-size: 14px; line-height: 1.6; }
+.app { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+.back { font-size: 13px; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1.5rem; }
+.back:hover { color: var(--text); }
+header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 2rem; }
+h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--text-muted); }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 1.75rem; }
+.stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; cursor: pointer; transition: border-color 0.12s; }
+.stat:hover { border-color: var(--text-muted); }
+.stat.active { border-color: var(--text); }
+.stat-num { font-size: 20px; font-weight: 500; display: block; }
+.stat-label { font-size: 11px; color: var(--text-muted); }
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; }
+.filter-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+.chip { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border); background: transparent; cursor: pointer; color: var(--text-muted); transition: all 0.12s; }
+.chip:hover { border-color: var(--text-muted); color: var(--text); }
+.chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+input[type=search] { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-size: 13px; color: var(--text); outline: none; width: 160px; }
+input[type=search]:focus { border-color: var(--text-muted); }
+.section { margin-bottom: 1.5rem; }
+.section-head { font-size: 12px; font-weight: 500; color: var(--text-muted); padding: 0 0 6px; border-bottom: 0.5px solid var(--border-light); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.section-head span { font-weight: 400; color: var(--text-hint); }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); transition: background 0.1s; }
+.row:hover { background: var(--surface); }
+.name { flex: 1; font-size: 13px; color: var(--text); }
+.due-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--s3-bg); color: var(--s3-text); white-space: nowrap; }
+.prio-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+.prio1 { background: #fcebeb; color: #a32d2d; }
+.prio2 { background: #faeeda; color: #854f0b; }
+.prio3 { background: var(--border-light); color: var(--text-muted); }
+.status-btn { font-size: 11px; padding: 3px 9px; border-radius: 5px; border: 0.5px solid var(--border); background: transparent; color: var(--text-hint); cursor: pointer; white-space: nowrap; transition: all 0.12s; min-width: 62px; text-align: center; }
+.status-btn:hover { border-color: var(--text-muted); }
+.s1 { background: var(--s1-bg); color: var(--s1-text); border-color: var(--s1-border); }
+.s2 { background: var(--s2-bg); color: var(--s2-text); border-color: var(--s2-border); }
+.s3 { background: var(--s3-bg); color: var(--s3-text); border-color: var(--s3-border); }
+.s4 { background: var(--s4-bg); color: var(--s4-text); border-color: var(--s4-border); }
+.icon-btn { background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 5px 10px; cursor: pointer; color: var(--text-muted); font-size: 12px; transition: all 0.12s; white-space: nowrap; }
+.icon-btn:hover { border-color: var(--text-muted); color: var(--text); }
+.review-btn { display: none; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 8px; }
+.empty { text-align: center; padding: 3rem 0; color: var(--text-hint); font-size: 13px; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 13px; padding: 8px 18px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 999; }
+.toast.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -96,7 +100,9 @@
 
   <div id="list"></div>
 </div>
+
 <div class="toast" id="toast"></div>
+
 <script>
 const STATES = ['未接触','初识','能讲','能用','融汇'];
 const SCLS   = ['','s1','s2','s3','s4'];
@@ -109,101 +115,208 @@ const W = [0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.0589,
 const DECAY = -0.5, FACTOR = 0.9 ** (1/DECAY) - 1;
 const RATING = {Again:1, Hard:2, Good:3, Easy:4};
 
-function forgetting_curve(t, s) { return (1 + FACTOR * t / s) ** DECAY; }
-function init_stability(r) { return W[r-1]; }
-function init_difficulty(r) { return W[4] - Math.exp(W[5]*(r-1)) + 1; }
-function clamp_d(d) { return Math.min(10, Math.max(1, d)); }
-function next_interval(s, r=0.9) { return Math.max(1, Math.round(s / FACTOR * (r ** (1/DECAY) - 1))); }
-function short_term_stability(s, r) { return s * Math.exp(W[17] * (r - 3 + W[18])); }
-function long_term_difficulty(d, r) { return clamp_d(W[6]*init_difficulty(4) + (1-W[6])*(d - W[7]*(r-3))); }
-function long_term_stability(d, s, r, t) {
-  const ret = r === RATING.Again;
-  const base = ret ? W[11] : W[8];
-  const ds = ret ? 0 : Math.exp(W[9]*(1-forgetting_curve(t,s)))-1;
-  const hard_pen = r === RATING.Hard ? W[15] : 1;
-  const easy_bon = r === RATING.Easy ? W[16] : 1;
-  return s * (Math.exp(W[8]) * (11-d) * s**(-W[9]) * (Math.exp((1-forgetting_curve(t,s))*W[10])-1) * hard_pen * easy_bon + 1);
+function forgetting_curve(t,s){ return (1+FACTOR*t/s)**DECAY; }
+function init_stability(r){ return W[r-1]; }
+function init_difficulty(r){ return W[4]-Math.exp(W[5]*(r-1))+1; }
+function clamp_d(d){ return Math.min(10,Math.max(1,d)); }
+function next_interval(s,r=0.9){ return Math.max(1,Math.round(s/FACTOR*(r**(1/DECAY)-1))); }
+function short_term_stability(s,r){ return s*Math.exp(W[17]*(r-3+W[18])); }
+function long_term_difficulty(d,r){ return clamp_d(W[6]*init_difficulty(4)+(1-W[6])*(d-W[7]*(r-3))); }
+function long_term_stability(d,s,r,t){
+  const hard_pen=r===RATING.Hard?W[15]:1, easy_bon=r===RATING.Easy?W[16]:1;
+  return s*(Math.exp(W[8])*(11-d)*s**(-W[9])*(Math.exp((1-forgetting_curve(t,s))*W[10])-1)*hard_pen*easy_bon+1);
 }
-
-function fsrs_schedule(card, rating_str) {
-  const r = RATING[rating_str];
-  const now = today();
-  const t = card.last_review ? daysBetween(card.last_review, now) : 0;
-  let {stability:s, difficulty:d, state, step} = card;
-  if (state === 0) {
-    s = init_stability(r); d = init_difficulty(r);
-    if (r === RATING.Again) { step=0; state=1; }
-    else if (r === RATING.Hard) { step=0; state=1; }
-    else if (r === RATING.Good) { step=1; state=1; }
-    else { state=2; }
-  } else if (state === 1 || state === 3) {
-    s = short_term_stability(s, r);
-    if (r === RATING.Again) { step=0; }
-    else if (r === RATING.Good) { step=(step||0)+1; }
-    if (r === RATING.Easy || (step||0) >= 2) { state=2; }
+function fsrs_schedule(card,rating_str){
+  const r=RATING[rating_str], now=today();
+  const t=card.last_review?daysBetween(card.last_review,now):0;
+  let {stability:s,difficulty:d,state,step}=card;
+  if(state===0){
+    s=init_stability(r); d=init_difficulty(r);
+    if(r===RATING.Again){step=0;state=1;}
+    else if(r===RATING.Hard){step=0;state=1;}
+    else if(r===RATING.Good){step=1;state=1;}
+    else{state=2;}
+  } else if(state===1||state===3){
+    s=short_term_stability(s,r);
+    if(r===RATING.Again){step=0;}
+    else if(r===RATING.Good){step=(step||0)+1;}
+    if(r===RATING.Easy||(step||0)>=2){state=2;}
   } else {
-    d = long_term_difficulty(d, r);
-    s = long_term_stability(d, s, r, t);
-    state = r === RATING.Again ? 3 : 2;
+    d=long_term_difficulty(d,r);
+    s=long_term_stability(d,s,r,t);
+    state=r===RATING.Again?3:2;
   }
-  const interval = (state === 2) ? next_interval(s) : 1;
-  const due = addDays(now, interval);
-  return { stability: Math.max(0.1,s), difficulty: clamp_d(d), state, step:step||0, due, last_review:now, interval };
+  const interval=(state===2)?next_interval(s):1;
+  const due=addDays(now,interval);
+  return{stability:Math.max(0.1,s),difficulty:clamp_d(d),state,step:step||0,due,last_review:now,interval};
 }
+function today(){ return new Date().toISOString().slice(0,10); }
+function addDays(d,n){ const dt=new Date(d+'T00:00:00'); dt.setDate(dt.getDate()+n); return dt.toISOString().slice(0,10); }
+function daysBetween(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
+function newCard(){ return{mastery:0,stability:0,difficulty:5,state:0,step:0,due:today(),last_review:null,interval:0}; }
 
-function today() { return new Date().toISOString().slice(0,10); }
-function addDays(d, n) { const dt=new Date(d+'T00:00:00'); dt.setDate(dt.getDate()+n); return dt.toISOString().slice(0,10); }
-function daysBetween(a, b) { return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
-function newCard() { return { mastery:0, stability:0, difficulty:5, state:0, step:0, due:today(), last_review:null, interval:0 }; }
+// ── 知识点数据（面试视角 · 五大集群）────────────────────────────
+// prio: 1=必会  2=重点  3=了解
+const DATA = [
+  // ───────────────────────────────────────────────────────────
+  // 集群一：模型架构核心
+  // ───────────────────────────────────────────────────────────
+  { cat:'模型架构核心', key:'arch', items:[
+    // 必会
+    {id:'02-1-attention',                           name:'Attention 机制（Q/K/V · Scaled Dot-Product）',   prio:1},
+    {id:'02-mha-mqa-gqa',                           name:'MHA / MQA / GQA',                               prio:1},
+    {id:'02-3-位置编码',                             name:'位置编码（RoPE / ALiBi / Sinusoidal）',          prio:1},
+    {id:'02-2-layer-normalization',                 name:'LayerNorm / RMSNorm · Pre-LN vs Post-LN',       prio:1},
+    {id:'02-transformer架构细节',                    name:'Transformer 架构细节',                          prio:1},
+    {id:'01-llm为什么decoder-only架构',              name:'LLM 为什么用 Decoder-only 架构',                prio:1},
+    // 重点
+    {id:'02-4-tokenize分词',                        name:'Tokenize 分词（BPE / WordPiece）',              prio:2},
+    {id:'02-6-激活函数',                             name:'激活函数（SwiGLU / GeLU / ReLU）',              prio:2},
+    {id:'02-解码策略-top-k---top-p---temperature-', name:'解码策略（Top-k / Top-p / Temperature）',       prio:2},
+    {id:'02-5-token及模型参数',                      name:'Token 数与模型参数量估算',                       prio:2},
+    {id:'02-1-moe论文',                             name:'MoE（混合专家模型）基础',                        prio:2},
+    {id:'01-1-llm概念',                             name:'LLM 基本概念',                                  prio:2},
+    {id:'01-1-语言模型',                             name:'语言模型基础',                                  prio:2},
+    {id:'01-nlp面试题',                             name:'NLP 面试题',                                    prio:2},
+    // 了解
+    {id:'02-llama系列模型',                          name:'LLaMA 系列架构演进',                            prio:3},
+    {id:'02-llama-3',                               name:'LLaMA 3',                                      prio:3},
+    {id:'02-llama-2代码详解',                        name:'LLaMA 2 代码详解',                             prio:3},
+    {id:'02-chatglm系列模型',                        name:'ChatGLM 系列模型',                             prio:3},
+    {id:'02-bert细节',                              name:'BERT 架构细节',                                 prio:3},
+    {id:'02-bert变种',                              name:'BERT 变种（RoBERTa / ALBERT 等）',              prio:3},
+    {id:'02-2-moe经典论文简牍',                      name:'MoE 经典论文简读',                             prio:3},
+    {id:'02-3-llm-moe--switch-transformers',        name:'Switch Transformers',                          prio:3},
+    {id:'01-nlp三大特征抽取器-cnn-rnn-tf-',          name:'NLP 三大特征抽取器（CNN / RNN / Transformer）', prio:3},
+    {id:'01-word2vec',                              name:'Word2Vec',                                      prio:3},
+    {id:'01-5-词向量',                              name:'词向量',                                        prio:3},
+    {id:'01-1-分词',                                name:'分词基础',                                      prio:3},
+    {id:'01-1-激活函数',                             name:'激活函数（经典 NLP 视角）',                     prio:3},
+    {id:'01-2-jieba分词用法及原理',                  name:'jieba 分词',                                   prio:3},
+    {id:'01-3-词性标注',                             name:'词性标注',                                     prio:3},
+    {id:'01-4-句法分析',                             name:'句法分析',                                     prio:3},
+  ]},
 
-// ── 数据 ──────────────────────────────────────────────────────
-const DATA = [{"cat": "基础", "key": "01", "items": [{"id": "01-1-llm概念", "name": "1.llm概念"}, {"id": "01-1-分词", "name": "1.分词"}, {"id": "01-1-激活函数", "name": "1.激活函数"}, {"id": "01-1-语言模型", "name": "1.语言模型"}, {"id": "01-2-jieba分词用法及原理", "name": "2.jieba分词用法及原理"}, {"id": "01-3-词性标注", "name": "3.词性标注"}, {"id": "01-4-句法分析", "name": "4.句法分析"}, {"id": "01-5-词向量", "name": "5.词向量"}, {"id": "01-llm为什么decoder-only架构", "name": "LLM为什么Decoder only架构"}, {"id": "01-nlp三大特征抽取器-cnn-rnn-tf-", "name": "NLP三大特征抽取器（CNN/RNN/TF）"}, {"id": "01-nlp面试题", "name": "NLP面试题"}, {"id": "01-word2vec", "name": "Word2Vec"}]}, {"cat": "架构", "key": "02", "items": [{"id": "02-1-moe论文", "name": "1.MoE论文"}, {"id": "02-1-attention", "name": "1.attention"}, {"id": "02-2-moe经典论文简牍", "name": "2.MoE经典论文简牍"}, {"id": "02-2-layer-normalization", "name": "2.layer\\_normalization"}, {"id": "02-3-llm-moe--switch-transformers", "name": "3.LLM MoE ：Switch Transformers"}, {"id": "02-3-位置编码", "name": "3.位置编码"}, {"id": "02-4-tokenize分词", "name": "4.tokenize分词"}, {"id": "02-5-token及模型参数", "name": "5.token及模型参数"}, {"id": "02-6-激活函数", "name": "6.激活函数"}, {"id": "02-mha-mqa-gqa", "name": "MHA\\_MQA\\_GQA"}, {"id": "02-transformer架构细节", "name": "Transformer架构细节"}, {"id": "02-bert变种", "name": "bert变种"}, {"id": "02-bert细节", "name": "bert细节"}, {"id": "02-chatglm系列模型", "name": "chatglm系列模型"}, {"id": "02-llama-2代码详解", "name": "llama 2代码详解"}, {"id": "02-llama-3", "name": "llama 3"}, {"id": "02-llama系列模型", "name": "llama系列模型"}, {"id": "02-解码策略-top-k---top-p---temperature-", "name": "解码策略（Top-k & Top-p & Temperature）"}]}, {"cat": "训练数据", "key": "03", "items": [{"id": "03-数据格式", "name": "数据格式"}]}, {"cat": "分布式训练", "key": "04", "items": [{"id": "04-1-显存问题", "name": "1.显存问题"}, {"id": "04-1-概述", "name": "1.概述"}, {"id": "04-2-数据并行", "name": "2.数据并行"}, {"id": "04-3-流水线并行", "name": "3.流水线并行"}, {"id": "04-4-张量并行", "name": "4.张量并行"}, {"id": "04-5-序列并行", "name": "5.序列并行"}, {"id": "04-6-多维度混合并行", "name": "6.多维度混合并行"}, {"id": "04-7-自动并行", "name": "7.自动并行"}, {"id": "04-8-moe并行", "name": "8.moe并行"}, {"id": "04-9-总结", "name": "9.总结"}, {"id": "04-deepspeed介绍", "name": "deepspeed介绍"}, {"id": "04-分布式训练题目", "name": "分布式训练题目"}]}, {"cat": "微调", "key": "05", "items": [{"id": "05-1-基本概念", "name": "1.基本概念"}, {"id": "05-1-微调", "name": "1.微调"}, {"id": "05-2-prompting", "name": "2.prompting"}, {"id": "05-2-预训练", "name": "2.预训练"}, {"id": "05-3-adapter-tuning", "name": "3.adapter-tuning"}, {"id": "05-4-lora", "name": "4.lora"}, {"id": "05-5-总结", "name": "5.总结"}, {"id": "05-chatglm3微调", "name": "ChatGLM3微调"}, {"id": "05-llama2微调", "name": "llama2微调"}]}, {"cat": "推理优化", "key": "06", "items": [{"id": "06-0-llm推理框架简单总结", "name": "0.llm推理框架简单总结"}, {"id": "06-1-vllm", "name": "1.vllm"}, {"id": "06-1-推理", "name": "1.推理"}, {"id": "06-2-text-generation-inference", "name": "2.text\\_generation\\_inference"}, {"id": "06-3-faster-transformer", "name": "3.faster\\_transformer"}, {"id": "06-4-trt-llm", "name": "4.trt\\_llm"}, {"id": "06-llm推理常见参数", "name": "LLM 推理常见参数"}, {"id": "06-llm推理优化技术", "name": "llm推理优化技术"}]}, {"cat": "对齐与RL", "key": "07", "items": [{"id": "07-1-rlhf相关", "name": "1.rlhf相关"}, {"id": "07-2-强化学习", "name": "2.强化学习"}, {"id": "07-dpo", "name": "DPO"}, {"id": "07-大模型rlhf-ppo原理与源码解读", "name": "大模型RLHF：PPO原理与源码解读"}, {"id": "07-策略梯度-pg-", "name": "策略梯度（pg）"}, {"id": "07-近端策略优化-ppo-", "name": "近端策略优化(ppo)"}]}, {"cat": "RAG", "key": "08", "items": [{"id": "08-rag-检索增强生成-技术", "name": "rag（检索增强生成）技术"}, {"id": "08-大模型agent技术", "name": "大模型agent技术"}, {"id": "08-检索增强llm", "name": "检索增强llm"}]}, {"cat": "评估", "key": "09", "items": [{"id": "09-1-大模型幻觉", "name": "1.大模型幻觉"}, {"id": "09-1-评测", "name": "1.评测"}, {"id": "09-2-幻觉来源与缓解", "name": "2.幻觉来源与缓解"}]}, {"cat": "应用层", "key": "10", "items": [{"id": "10-1-langchain", "name": "1.langchain"}, {"id": "10-1-思维链-cot-", "name": "1.思维链（cot）"}]}, {"cat": "参考课程", "key": "98", "items": [{"id": "98-1-nlp-大模型基础", "name": "1.NLP&大模型基础"}, {"id": "98-2-神经网络基础", "name": "2.神经网络基础"}, {"id": "98-3-transformer基础", "name": "3.Transformer基础"}, {"id": "98-4-prompt-tuning---delta-tuning", "name": "4.Prompt Tuning & Delta Tuning"}, {"id": "98-5-高效训练-模型压缩", "name": "5.高效训练&模型压缩"}, {"id": "98-6-文本理解和生成大模型", "name": "6.文本理解和生成大模型"}, {"id": "98-清华大模型公开课", "name": "清华大模型公开课"}]}];
+  // ───────────────────────────────────────────────────────────
+  // 集群二：推理优化
+  // ───────────────────────────────────────────────────────────
+  { cat:'推理优化', key:'infer', items:[
+    // 必会
+    {id:'06-llm推理优化技术',           name:'LLM 推理优化技术总览（KV Cache · 量化 · 批处理）',  prio:1},
+    {id:'06-1-vllm',                   name:'vLLM / PagedAttention 原理',                     prio:1},
+    {id:'04-1-显存问题',               name:'显存占用分析与优化',                               prio:1},
+    // 重点
+    {id:'06-llm推理常见参数',           name:'LLM 推理常见参数',                               prio:2},
+    {id:'06-0-llm推理框架简单总结',     name:'推理框架对比（vLLM / TRT-LLM / TGI）',           prio:2},
+    {id:'06-4-trt-llm',               name:'TensorRT-LLM',                                   prio:2},
+    {id:'06-2-text-generation-inference', name:'TGI（Text Generation Inference）',            prio:2},
+    {id:'06-1-推理',                   name:'推理面试题',                                     prio:2},
+    // 了解
+    {id:'06-3-faster-transformer',     name:'FasterTransformer',                              prio:3},
+  ]},
+
+  // ───────────────────────────────────────────────────────────
+  // 集群三：训练与对齐
+  // ───────────────────────────────────────────────────────────
+  { cat:'训练与对齐', key:'train', items:[
+    // 必会
+    {id:'05-4-lora',                        name:'LoRA 原理',             prio:1},
+    {id:'07-大模型rlhf-ppo原理与源码解读',   name:'RLHF 流程与 PPO 原理', prio:1},
+    {id:'07-dpo',                           name:'DPO（直接偏好优化）',   prio:1},
+    {id:'07-近端策略优化-ppo-',              name:'PPO 算法原理',          prio:1},
+    // 重点
+    {id:'05-1-基本概念',                    name:'SFT 基本概念',          prio:2},
+    {id:'05-3-adapter-tuning',              name:'Adapter Tuning',        prio:2},
+    {id:'05-2-prompting',                   name:'Prompting 方法',        prio:2},
+    {id:'05-5-总结',                        name:'微调方法总结',           prio:2},
+    {id:'07-策略梯度-pg-',                  name:'策略梯度（PG）',        prio:2},
+    {id:'05-1-微调',                        name:'微调面试题',            prio:2},
+    {id:'05-2-预训练',                      name:'预训练面试题',          prio:2},
+    {id:'07-1-rlhf相关',                    name:'RLHF 面试题',          prio:2},
+    {id:'07-2-强化学习',                    name:'强化学习面试题',        prio:2},
+    {id:'03-数据格式',                      name:'训练数据格式',          prio:2},
+    // 了解
+    {id:'05-llama2微调',                    name:'LLaMA 2 微调实战',     prio:3},
+    {id:'05-chatglm3微调',                  name:'ChatGLM3 微调实战',    prio:3},
+  ]},
+
+  // ───────────────────────────────────────────────────────────
+  // 集群四：工程与规模化
+  // ───────────────────────────────────────────────────────────
+  { cat:'工程与规模化', key:'eng', items:[
+    // 重点
+    {id:'04-1-概述',           name:'分布式训练概述',   prio:2},
+    {id:'04-2-数据并行',       name:'数据并行',         prio:2},
+    {id:'04-3-流水线并行',     name:'流水线并行',       prio:2},
+    {id:'04-4-张量并行',       name:'张量并行',         prio:2},
+    {id:'04-deepspeed介绍',    name:'DeepSpeed / ZeRO', prio:2},
+    {id:'04-9-总结',           name:'分布式训练总结',   prio:2},
+    {id:'04-分布式训练题目',    name:'分布式训练面试题', prio:2},
+    // 了解
+    {id:'04-5-序列并行',       name:'序列并行',         prio:3},
+    {id:'04-6-多维度混合并行', name:'多维度混合并行',   prio:3},
+    {id:'04-7-自动并行',       name:'自动并行',         prio:3},
+    {id:'04-8-moe并行',        name:'MoE 并行',        prio:3},
+  ]},
+
+  // ───────────────────────────────────────────────────────────
+  // 集群五：应用与评估
+  // ───────────────────────────────────────────────────────────
+  { cat:'应用与评估', key:'app', items:[
+    // 重点
+    {id:'08-检索增强llm',              name:'检索增强 LLM 概述',      prio:2},
+    {id:'08-rag-检索增强生成-技术',    name:'RAG（检索增强生成）技术', prio:2},
+    {id:'08-大模型agent技术',          name:'Agent 技术',             prio:2},
+    {id:'09-1-评测',                  name:'模型评测方法',            prio:2},
+    {id:'09-1-大模型幻觉',             name:'大模型幻觉',             prio:2},
+    {id:'09-2-幻觉来源与缓解',         name:'幻觉来源与缓解',         prio:2},
+    {id:'10-1-思维链-cot-',           name:'思维链（CoT）',           prio:2},
+    // 了解
+    {id:'10-1-langchain',             name:'LangChain 框架',          prio:3},
+  ]},
+];
 
 let st = {};
 try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e) {}
-function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
-
-function getCard(id) { if (!st[id]) st[id] = newCard(); return st[id]; }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
+function getCard(id){ if(!st[id]) st[id]=newCard(); return st[id]; }
 
 // ── 今日复习 ──────────────────────────────────────────────────
 let reviewModal = null;
 
-function getDueToday() {
-  const t = today();
-  return DATA.flatMap(s => s.items).filter(p => {
-    const c = st[p.id];
-    if (!c || c.mastery === 0 || c.mastery === 4) return false;
-    return c.due <= t;
-  }).sort((a,b) => {
-    const ca=st[a.id], cb=st[b.id];
-    if (ca.mastery !== cb.mastery) return ca.mastery - cb.mastery;
-    return (ca.due||'') < (cb.due||'') ? -1 : 1;
+function getDueToday(){
+  const t=today();
+  return DATA.flatMap(s=>s.items).filter(p=>{
+    const c=st[p.id];
+    if(!c||c.mastery===0||c.mastery===4) return false;
+    return c.due<=t;
+  }).sort((a,b)=>{
+    const ca=st[a.id],cb=st[b.id];
+    if(ca.mastery!==cb.mastery) return ca.mastery-cb.mastery;
+    return (ca.due||'')<(cb.due||'')?-1:1;
   });
 }
 
-function openReview() {
-  const due = getDueToday();
-  if (!due.length) { toast('🎉 今日无待复习条目'); return; }
-  showReviewCard(due, 0);
+function openReview(){
+  const due=getDueToday();
+  if(!due.length){ toast('🎉 今日无待复习条目'); return; }
+  showReviewCard(due,0);
 }
 
-function showReviewCard(due, idx) {
-  if (reviewModal) reviewModal.remove();
-  if (idx >= due.length) { toast(`✅ 今日 ${due.length} 条复习完成！`); render(); return; }
-  const p = due[idx];
-  const c = getCard(p.id);
-  const modal = document.createElement('div');
-  modal.id = 'review-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;';
-  modal.innerHTML = `
+function showReviewCard(due,idx){
+  if(reviewModal) reviewModal.remove();
+  if(idx>=due.length){ toast(`✅ 今日 ${due.length} 条复习完成！`); render(); return; }
+  const p=due[idx], c=getCard(p.id);
+  const modal=document.createElement('div');
+  modal.id='review-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;';
+  modal.innerHTML=`
     <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:28px 28px 22px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
         <span style="font-size:12px;color:var(--text-muted);">复习 ${idx+1} / ${due.length}</span>
         <button onclick="closeReview()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;">✕</button>
       </div>
-      <div style="margin-bottom:6px;">
-        <span class="status-btn ${SCLS[c.mastery]}" style="pointer-events:none;">${STATES[c.mastery]}</span>
-      </div>
+      <div style="margin-bottom:6px;"><span class="status-btn ${SCLS[c.mastery]}" style="pointer-events:none;">${STATES[c.mastery]}</span></div>
       <div style="font-size:18px;font-weight:500;margin-bottom:20px;">${p.name}</div>
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">回忆这个知识点，再评价掌握情况：</p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
@@ -218,104 +331,98 @@ function showReviewCard(due, idx) {
       </p>
     </div>`;
   document.body.appendChild(modal);
-  reviewModal = modal;
+  reviewModal=modal;
 }
 
-function submitRating(rating, due, idx) {
-  const p = due[idx];
-  const card = getCard(p.id);
-  const result = fsrs_schedule(card, rating);
-  st[p.id] = { ...card, ...result };
-  if (rating === 'Easy' && st[p.id].mastery < 3) st[p.id].mastery = Math.max(st[p.id].mastery, 3);
-  else if (rating === 'Good' && st[p.id].mastery < 2) st[p.id].mastery = 2;
-  save();
-  showReviewCard(due, idx+1);
+function submitRating(rating,due,idx){
+  const p=due[idx], card=getCard(p.id);
+  const result=fsrs_schedule(card,rating);
+  st[p.id]={...card,...result};
+  if(rating==='Easy'&&st[p.id].mastery<3) st[p.id].mastery=Math.max(st[p.id].mastery,3);
+  else if(rating==='Good'&&st[p.id].mastery<2) st[p.id].mastery=2;
+  save(); showReviewCard(due,idx+1);
 }
 
-function closeReview() { if (reviewModal) { reviewModal.remove(); reviewModal = null; } }
+function closeReview(){ if(reviewModal){ reviewModal.remove(); reviewModal=null; } }
 
 // ── 掌握度切换 ────────────────────────────────────────────────
-function nextState(id) {
-  const card = getCard(id);
-  const prev = card.mastery;
-  card.mastery = (prev + 1) % 5;
-  // 首次标记为初识时，初始化FSRS卡片进入学习队列
-  if (prev === 0 && card.mastery === 1) {
-    card.state = 0;
-    card.due = today();
-    card.last_review = null;
-  }
+function nextState(id){
+  const card=getCard(id), prev=card.mastery;
+  card.mastery=(prev+1)%5;
+  if(prev===0&&card.mastery===1){ card.state=0; card.due=today(); card.last_review=null; }
   save(); render();
 }
 
 // ── 筛选 & 渲染 ───────────────────────────────────────────────
-let filter = 'all';
-function setFilter(f, btn) {
-  filter = f;
-  document.querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+let filter='all';
+
+function setFilter(f,btn){
+  filter=f;
+  document.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   render();
 }
-function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
-function exportData() {
+
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
+
+function exportData(){
   const blob=new Blob([JSON.stringify(st,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`llm_backup_${today()}.json`; a.click(); toast('备份已导出');
 }
-function importData(e) {
-  const file=e.target.files[0]; if(!file)return;
+
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
   const reader=new FileReader();
   reader.onload=ev=>{ try{ st=JSON.parse(ev.target.result); save(); render(); toast('导入成功'); }catch{ toast('文件格式错误'); } };
   reader.readAsText(file); e.target.value='';
 }
 
-function render() {
-  const q = document.getElementById('search').value.trim().toLowerCase();
-  const t = today();
-  const counts = [0,0,0,0,0];
-  DATA.forEach(s => s.items.forEach(p => counts[getCard(p.id).mastery]++));
+const PRIO_LABEL = {1:'必会', 2:'重点', 3:'了解'};
 
-  // stats bar
-  document.getElementById('stats').innerHTML = counts.map((n,i) =>
+function render(){
+  const q=document.getElementById('search').value.trim().toLowerCase();
+  const t=today();
+  const counts=[0,0,0,0,0];
+  DATA.forEach(s=>s.items.forEach(p=>counts[getCard(p.id).mastery]++));
+
+  document.getElementById('stats').innerHTML=counts.map((n,i)=>
     `<div class="stat${filter===(i===0?'all':i)?' active':''}" onclick="setFilter(${i===0?"'all'":i},this)">
       <span class="stat-num">${n}</span><span class="stat-label">${STATES[i]}</span>
     </div>`
   ).join('');
 
-  // due button
-  const due = getDueToday();
-  const reviewBtn = document.getElementById('review-btn');
-  if (due.length > 0) {
-    reviewBtn.style.display = 'inline-flex';
-    document.getElementById('due-count').textContent = due.length;
-  } else {
-    reviewBtn.style.display = 'none';
-  }
+  const due=getDueToday();
+  const reviewBtn=document.getElementById('review-btn');
+  if(due.length>0){ reviewBtn.style.display='inline-flex'; document.getElementById('due-count').textContent=due.length; }
+  else { reviewBtn.style.display='none'; }
 
-  let html = '', total = 0;
-  DATA.forEach(sec => {
-    const rows = sec.items.filter(p => {
-      const c = getCard(p.id);
-      const isDue = c.mastery > 0 && c.mastery < 4 && c.due <= t;
-      if (filter === 'due') return isDue && (!q || p.name.toLowerCase().includes(q));
-      return (filter === 'all' || c.mastery === filter) && (!q || p.name.toLowerCase().includes(q));
+  let html='', total=0;
+  DATA.forEach(sec=>{
+    const rows=sec.items.filter(p=>{
+      const c=getCard(p.id);
+      const isDue=c.mastery>0&&c.mastery<4&&c.due<=t;
+      if(filter==='due') return isDue&&(!q||p.name.toLowerCase().includes(q));
+      return (filter==='all'||c.mastery===filter)&&(!q||p.name.toLowerCase().includes(q));
     });
-    if (!rows.length) return;
-    total += rows.length;
-    html += `<div class="section"><div class="section-head">${sec.cat}<span>${rows.length} 个知识点</span></div>`;
-    rows.forEach(p => {
-      const c = getCard(p.id);
-      const isDue = c.mastery > 0 && c.mastery < 4 && c.due <= t;
-      html += `<div class="row">
+    if(!rows.length) return;
+    total+=rows.length;
+    html+=`<div class="section"><div class="section-head">${sec.cat}<span>${rows.length} 个知识点</span></div>`;
+    rows.forEach(p=>{
+      const c=getCard(p.id);
+      const isDue=c.mastery>0&&c.mastery<4&&c.due<=t;
+      const prioBadge=p.prio?`<span class="prio-badge prio${p.prio}">${PRIO_LABEL[p.prio]}</span>`:'';
+      html+=`<div class="row">
         <span class="name">${p.name}</span>
-        ${isDue ? '<span class="due-badge">待复习</span>' : ''}
+        ${prioBadge}
+        ${isDue?'<span class="due-badge">待复习</span>':''}
         <button class="status-btn ${SCLS[c.mastery]}" onclick="nextState('${p.id}')">${STATES[c.mastery]}</button>
       </div>`;
     });
-    html += '</div>';
+    html+='</div>';
   });
-  if (!total) html = '<div class="empty">没有匹配的知识点</div>';
-  document.getElementById('list').innerHTML = html;
+  if(!total) html='<div class="empty">没有匹配的知识点</div>';
+  document.getElementById('list').innerHTML=html;
 }
 
 render();
