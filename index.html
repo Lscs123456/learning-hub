@@ -35,8 +35,8 @@
   h1 { font-size: 26px; font-weight: 500; margin-bottom: 6px; }
   .subtitle { font-size: 13px; color: var(--text-muted); }
 
-  .modules { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 3rem; }
-  @media (max-width: 480px) { .modules { grid-template-columns: 1fr; } }
+  .modules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 3rem; }
+  @media (max-width: 720px) { .modules { grid-template-columns: 1fr; } }
 
   .module-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; cursor: pointer; text-decoration: none; color: inherit; display: block; transition: border-color 0.15s, box-shadow 0.15s; }
   .module-card:hover { border-color: var(--text-muted); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
@@ -49,6 +49,7 @@
   .progress-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
   .lc-fill  { background: linear-gradient(90deg, var(--s1-border), var(--s4-border)); }
   .llm-fill { background: linear-gradient(90deg, var(--s2-border), var(--s4-border)); }
+  .hub-fill { background: linear-gradient(90deg, var(--s1-border), var(--s3-border)); }
 
   .module-stats { display: flex; gap: 10px; flex-wrap: wrap; }
   .mstat { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
@@ -112,12 +113,24 @@
 <script>
 const MODULES = [
   {
+    id: 'hub',
+    icon: '▣',
+    name: '学习地图',
+    desc: '自定义资料 · 项目 · 八股 · 算法',
+    href: 'hub.html',
+    key: 'learning_map_v1',
+    total: null,
+    topLabel: '融汇',
+    fillCls: 'hub-fill',
+    custom: true,
+  },
+  {
     id: 'lc',
     icon: '⚡',
     name: 'LeetCode 刷题',
     desc: '算法题追踪 · 17 大类 · 109 题',
     href: 'leetcode.html',
-    key: 'lc_tracker_v1',
+    key: 'lc_tracker_v2',
     total: 109,
     topLabel: '题破',
     fillCls: 'lc-fill',
@@ -128,7 +141,7 @@ const MODULES = [
     name: 'LLM 八股文',
     desc: '大模型知识地图 · 7 大模块',
     href: 'llm.html',
-    key: 'llm_tracker_v1',
+    key: 'llm_tracker_v2',
     total: 35,
     topLabel: '融汇',
     fillCls: 'llm-fill',
@@ -142,25 +155,36 @@ function getStats(key, total) {
   let st = {};
   try { st = JSON.parse(localStorage.getItem(key)) || {}; } catch(e) {}
   const counts = [0,0,0,0,0];
-  for (let i = 0; i < total; i++) {
-    // count by values in st, rest are 0
+  if (Array.isArray(st.nodes)) {
+    const leaves = getLeaves(st.nodes);
+    leaves.forEach(node => counts[node.mastery || 0]++);
+    total = leaves.length;
+  } else {
+    Object.values(st).forEach(v => {
+      const mastery = typeof v === 'number' ? v : v?.mastery;
+      if (mastery >= 0 && mastery <= 4) counts[mastery]++;
+    });
+    counts[0] = total - counts[1] - counts[2] - counts[3] - counts[4];
   }
-  Object.values(st).forEach(v => { if (v >= 0 && v <= 4) counts[v]++; });
-  counts[0] = total - counts[1] - counts[2] - counts[3] - counts[4];
   const done = counts[1] + counts[2] + counts[3] + counts[4];
   return { counts, done };
+}
+
+function getLeaves(nodes) {
+  return nodes.flatMap(node => node.children?.length ? getLeaves(node.children) : [node]);
 }
 
 function render() {
   const el = document.getElementById('modules');
   el.innerHTML = MODULES.map(m => {
     const { counts, done } = getStats(m.key, m.total);
-    const pct = Math.round(done / m.total * 100);
+    const total = m.total || counts.reduce((sum, n) => sum + n, 0);
+    const pct = total ? Math.round(done / total * 100) : 0;
     return `<a class="module-card" href="${m.href}">
       <div class="module-icon">${m.icon}</div>
       <div class="module-name">${m.name}</div>
       <div class="module-desc">${m.desc}</div>
-      <div class="module-top-label">已标记 ${done} / ${m.total} · ${pct}%</div>
+      <div class="module-top-label">已标记 ${done} / ${total} · ${pct}%</div>
       <div class="progress-bar"><div class="progress-fill ${m.fillCls}" style="width:${pct}%"></div></div>
       <div class="module-stats">
         ${[1,2,3,4].map(i => counts[i] ? `<div class="mstat"><div class="dot" style="background:${DOTS[i]}"></div>${i===4?m.topLabel:STATE_LABELS[i]} ${counts[i]}</div>` : '').join('')}

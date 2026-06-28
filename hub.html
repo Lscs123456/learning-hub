@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习地图</title>
+<style>
+:root {
+  --bg:#f9f9f7; --surface:#ffffff; --border:#e8e8e4; --border-light:#f0f0ec;
+  --text:#1a1a18; --text-muted:#888884; --text-hint:#b8b8b4;
+  --radius:8px; --radius-lg:12px;
+  --s1-bg:#eaf3de; --s1-text:#3b6d11; --s1-border:#7fba4a;
+  --s2-bg:#e6f1fb; --s2-text:#0c447c; --s2-border:#378add;
+  --s3-bg:#faeeda; --s3-text:#854f0b; --s3-border:#ef9f27;
+  --s4-bg:#fcebeb; --s4-text:#a32d2d; --s4-border:#e24b4a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#141412; --surface:#1e1e1c; --border:#2e2e2a;
+    --border-light:#242422; --text:#f0f0ec; --text-muted:#888884; --text-hint:#4a4a46;
+  }
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif; font-size:14px; line-height:1.6; }
+.app { max-width:980px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+.back { font-size:13px; color:var(--text-muted); text-decoration:none; display:inline-flex; margin-bottom:1.5rem; }
+.back:hover { color:var(--text); }
+header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:1.5rem; }
+h1 { font-size:24px; font-weight:500; margin-bottom:4px; }
+.subtitle { color:var(--text-muted); font-size:13px; }
+.actions { display:flex; gap:8px; flex-wrap:wrap; }
+button, input, select, textarea { font:inherit; }
+.btn { background:transparent; border:0.5px solid var(--border); border-radius:var(--radius); color:var(--text-muted); cursor:pointer; padding:7px 11px; font-size:12px; transition:all .12s; }
+.btn:hover { border-color:var(--text-muted); color:var(--text); }
+.btn.primary { background:var(--text); border-color:var(--text); color:var(--bg); }
+.toolbar { display:grid; grid-template-columns:1.2fr .7fr .7fr auto; gap:8px; align-items:center; margin-bottom:1rem; }
+input, select, textarea { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); color:var(--text); outline:none; padding:8px 10px; min-width:0; }
+input:focus, select:focus, textarea:focus { border-color:var(--text-muted); }
+.stats { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:1.25rem; }
+.stat { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:10px; text-align:center; cursor:pointer; }
+.stat.active { border-color:var(--text); }
+.stat-num { display:block; font-size:20px; font-weight:500; }
+.stat-label { display:block; font-size:11px; color:var(--text-muted); }
+.layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; align-items:start; }
+.panel { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:14px; }
+.section { border-top:0.5px solid var(--border-light); padding-top:10px; margin-top:10px; }
+.section:first-child { border-top:none; padding-top:0; margin-top:0; }
+.node { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; align-items:center; padding:7px 8px; border-radius:var(--radius); }
+.node:hover { background:var(--bg); }
+.indent { width:calc(var(--level) * 18px); height:1px; }
+.title { min-width:0; }
+.name { font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.meta { color:var(--text-hint); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status { font-size:11px; padding:3px 9px; border-radius:5px; border:0.5px solid var(--border); background:transparent; color:var(--text-hint); cursor:pointer; min-width:58px; }
+.s1 { background:var(--s1-bg); color:var(--s1-text); border-color:var(--s1-border); }
+.s2 { background:var(--s2-bg); color:var(--s2-text); border-color:var(--s2-border); }
+.s3 { background:var(--s3-bg); color:var(--s3-text); border-color:var(--s3-border); }
+.s4 { background:var(--s4-bg); color:var(--s4-text); border-color:var(--s4-border); }
+.tiny { border:none; background:transparent; color:var(--text-hint); cursor:pointer; padding:2px 4px; }
+.tiny:hover { color:var(--text); }
+.side-title { font-size:12px; color:var(--text-muted); margin-bottom:8px; }
+.form { display:grid; gap:8px; }
+.form textarea { resize:vertical; min-height:76px; }
+.hint { color:var(--text-hint); font-size:11px; }
+.empty { color:var(--text-hint); text-align:center; padding:3rem 1rem; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.42); display:none; align-items:center; justify-content:center; z-index:20; padding:1rem; }
+.modal.show { display:flex; }
+.dialog { background:var(--surface); color:var(--text); border:0.5px solid var(--border); border-radius:16px; width:min(680px,100%); padding:18px; box-shadow:0 12px 40px rgba(0,0,0,.2); }
+.dialog-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.dialog textarea { width:100%; min-height:280px; resize:vertical; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--text); color:var(--bg); font-size:13px; padding:8px 18px; border-radius:20px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:30; }
+.toast.show { opacity:1; }
+@media (max-width:820px) {
+  .toolbar { grid-template-columns:1fr; }
+  .stats { grid-template-columns:repeat(2,1fr); }
+  .layout { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← 学习中心</a>
+  <header>
+    <div>
+      <h1>学习地图</h1>
+      <p class="subtitle">把课程、项目、算法、八股拆成可追踪的最小学习节点</p>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="openAiPrompt()">AI 拆解提示</button>
+      <button class="btn" onclick="exportData()">导出</button>
+      <button class="btn" onclick="document.getElementById('imp').click()">导入</button>
+      <input id="imp" type="file" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="搜索节点、来源、备注" oninput="render()">
+    <select id="domain-filter" onchange="render()"></select>
+    <select id="status-filter" onchange="render()">
+      <option value="all">全部状态</option>
+      <option value="0">未接触</option>
+      <option value="1">初识</option>
+      <option value="2">能讲</option>
+      <option value="3">能用</option>
+      <option value="4">融汇</option>
+    </select>
+    <button class="btn primary" onclick="startAddRoot()">新增领域</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="layout">
+    <main class="panel" id="tree"></main>
+    <aside class="panel">
+      <div class="side-title" id="form-title">新增最小节点</div>
+      <div class="form">
+        <input id="parent-id" type="hidden">
+        <input id="node-title" placeholder="节点名称，例如 RoPE 位置编码">
+        <select id="node-kind">
+          <option value="topic">主题/章节</option>
+          <option value="task">最小学习节点</option>
+          <option value="project">项目实践</option>
+          <option value="problem">算法题</option>
+          <option value="interview">八股问答</option>
+        </select>
+        <select id="node-priority">
+          <option value="2">重点</option>
+          <option value="1">必会</option>
+          <option value="3">了解</option>
+        </select>
+        <input id="node-source" placeholder="资料/链接/笔记路径">
+        <textarea id="node-note" placeholder="学习目标、卡住的问题、产出物"></textarea>
+        <button class="btn primary" onclick="saveNode()">保存节点</button>
+        <p class="hint">选择左侧任意节点旁边的 +，可以在它下面继续拆分。只有没有子节点的条目会计入总进度。</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="modal" id="ai-modal">
+  <div class="dialog">
+    <div class="dialog-head">
+      <strong>AI 拆解提示</strong>
+      <button class="tiny" onclick="closeAiPrompt()">✕</button>
+    </div>
+    <textarea id="ai-text"></textarea>
+    <div class="actions" style="justify-content:flex-end;margin-top:10px;">
+      <button class="btn" onclick="copyAiPrompt()">复制提示</button>
+      <button class="btn primary" onclick="closeAiPrompt()">完成</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'learning_map_v1';
+const STATES = ['未接触','初识','能讲','能用','融汇'];
+const SCLS = ['','s1','s2','s3','s4'];
+const KIND_LABELS = {topic:'主题',task:'节点',project:'项目',problem:'算法',interview:'八股'};
+const PRIO_LABELS = {1:'必会',2:'重点',3:'了解'};
+
+const seed = {
+  version: 1,
+  nodes: [
+    {id:'algo', title:'算法题', kind:'topic', mastery:0, priority:1, source:'', note:'按算法类型拆分，再落到具体题目。', children:[
+      {id:'algo-dp', title:'动态规划', kind:'topic', mastery:0, priority:1, source:'LeetCode', note:'状态定义、转移方程、初始化、遍历顺序。', children:[
+        {id:'algo-dp-coin-change', title:'零钱兑换', kind:'problem', mastery:0, priority:1, source:'LeetCode 322', note:'最小硬币数，完全背包模型。', children:[]}
+      ]}
+    ]},
+    {id:'llm-note', title:'LLM 八股文', kind:'topic', mastery:0, priority:1, source:'llm-notes', note:'课程章节和面试问答统一沉淀。', children:[
+      {id:'llm-note-attention', title:'Attention 机制', kind:'interview', mastery:0, priority:1, source:'llm-notes/02.大语言模型架构', note:'Q/K/V、缩放点积、多头注意力。', children:[]}
+    ]},
+    {id:'project', title:'项目实践', kind:'topic', mastery:0, priority:2, source:'', note:'每个项目拆成需求、技术点、代码实现、复盘。', children:[
+      {id:'project-learning-hub', title:'learning-hub 简洁可用版', kind:'project', mastery:1, priority:2, source:'GitHub Pages', note:'先完成自定义学习地图，再逐步做统计和 AI 接入。', children:[]}
+    ]}
+  ]
+};
+
+let data = load();
+let filter = 'all';
+
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (raw && Array.isArray(raw.nodes)) return raw;
+  } catch(e) {}
+  localStorage.setItem(KEY, JSON.stringify(seed));
+  return structuredClone(seed);
+}
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
+function uid(title) {
+  const base = title.trim().toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g,'-').replace(/^-|-$/g,'') || 'node';
+  return `${base}-${Date.now().toString(36)}`;
+}
+
+function flatten(nodes=data.nodes, level=0, parent=null) {
+  return nodes.flatMap(node => [{node, level, parent}].concat(flatten(node.children || [], level + 1, node)));
+}
+
+function leaves() {
+  return flatten().filter(item => !item.node.children?.length);
+}
+
+function findNode(id, nodes=data.nodes, parent=null) {
+  for (const node of nodes) {
+    if (node.id === id) return {node, parent};
+    const found = findNode(id, node.children || [], node);
+    if (found) return found;
+  }
+  return null;
+}
+
+function startAddRoot() {
+  document.getElementById('form-title').textContent = '新增领域';
+  document.getElementById('parent-id').value = '';
+  clearForm();
+  document.getElementById('node-title').focus();
+}
+
+function startAddChild(id) {
+  const found = findNode(id);
+  document.getElementById('form-title').textContent = `新增到：${found.node.title}`;
+  document.getElementById('parent-id').value = id;
+  clearForm();
+  document.getElementById('node-title').focus();
+}
+
+function clearForm() {
+  document.getElementById('node-title').value = '';
+  document.getElementById('node-kind').value = 'task';
+  document.getElementById('node-priority').value = '2';
+  document.getElementById('node-source').value = '';
+  document.getElementById('node-note').value = '';
+}
+
+function saveNode() {
+  const title = document.getElementById('node-title').value.trim();
+  if (!title) { toast('先写一个节点名称'); return; }
+  const node = {
+    id: uid(title),
+    title,
+    kind: document.getElementById('node-kind').value,
+    mastery: 0,
+    priority: Number(document.getElementById('node-priority').value),
+    source: document.getElementById('node-source').value.trim(),
+    note: document.getElementById('node-note').value.trim(),
+    children: []
+  };
+  const parentId = document.getElementById('parent-id').value;
+  if (parentId) findNode(parentId).node.children.push(node);
+  else data.nodes.push(node);
+  save();
+  clearForm();
+  render();
+  toast('已保存');
+}
+
+function nextState(id) {
+  const found = findNode(id);
+  found.node.mastery = ((found.node.mastery || 0) + 1) % 5;
+  found.node.updatedAt = new Date().toISOString().slice(0,10);
+  save();
+  render();
+}
+
+function removeNode(id) {
+  const found = findNode(id);
+  if (!found) return;
+  const siblings = found.parent ? found.parent.children : data.nodes;
+  const idx = siblings.findIndex(node => node.id === id);
+  if (idx >= 0) siblings.splice(idx, 1);
+  save();
+  render();
+  toast('已删除');
+}
+
+function renderFilters() {
+  const select = document.getElementById('domain-filter');
+  const current = select.value || 'all';
+  const roots = data.nodes.map(node => `<option value="${node.id}">${node.title}</option>`).join('');
+  select.innerHTML = `<option value="all">全部领域</option>${roots}`;
+  select.value = [...data.nodes.map(n => n.id), 'all'].includes(current) ? current : 'all';
+}
+
+function matches(item, q, status, domain) {
+  const text = `${item.node.title} ${item.node.source || ''} ${item.node.note || ''}`.toLowerCase();
+  const statusOk = status === 'all' || Number(status) === (item.node.mastery || 0);
+  const queryOk = !q || text.includes(q);
+  if (domain === 'all') return statusOk && queryOk;
+  let cur = item.node;
+  while (cur) {
+    if (cur.id === domain) return statusOk && queryOk;
+    const found = flatten().find(x => x.node.children?.some(child => child.id === cur.id));
+    cur = found?.node;
+  }
+  return false;
+}
+
+function renderStats() {
+  const counts = [0,0,0,0,0];
+  leaves().forEach(item => counts[item.node.mastery || 0]++);
+  document.getElementById('stats').innerHTML = counts.map((n,i) =>
+    `<div class="stat${document.getElementById('status-filter').value === String(i) ? ' active' : ''}" onclick="document.getElementById('status-filter').value='${i}';render();">
+      <span class="stat-num">${n}</span><span class="stat-label">${STATES[i]}</span>
+    </div>`
+  ).join('');
+}
+
+function renderTree() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const status = document.getElementById('status-filter').value;
+  const domain = document.getElementById('domain-filter').value;
+  const items = flatten().filter(item => matches(item, q, status, domain));
+  if (!items.length) {
+    document.getElementById('tree').innerHTML = '<div class="empty">没有匹配的学习节点</div>';
+    return;
+  }
+  document.getElementById('tree').innerHTML = items.map(({node, level}) => `
+    <div class="node" style="--level:${level}">
+      <div class="indent"></div>
+      <div class="title">
+        <div class="name">${escapeHtml(node.title)}</div>
+        <div class="meta">${KIND_LABELS[node.kind] || '节点'} · ${PRIO_LABELS[node.priority] || '重点'}${node.source ? ' · ' + escapeHtml(node.source) : ''}${node.note ? ' · ' + escapeHtml(node.note) : ''}</div>
+      </div>
+      <div>
+        <button class="tiny" title="添加子节点" onclick="startAddChild('${node.id}')">＋</button>
+        <button class="tiny" title="删除" onclick="removeNode('${node.id}')">×</button>
+        <button class="status ${SCLS[node.mastery || 0]}" onclick="nextState('${node.id}')">${STATES[node.mastery || 0]}</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function render() {
+  renderFilters();
+  renderStats();
+  renderTree();
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `learning_map_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('备份已导出');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const incoming = JSON.parse(ev.target.result);
+      if (!Array.isArray(incoming.nodes)) throw new Error('bad shape');
+      data = incoming;
+      save();
+      render();
+      toast('导入成功');
+    } catch(err) {
+      toast('文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function openAiPrompt() {
+  const prompt = `你是我的学习规划助手。请把我给你的资料拆成 learning-hub 可以追踪的学习地图。
+
+目标：
+1. 先判断它属于哪个领域，例如算法题、LLM 八股文、项目实践、课程章节。
+2. 按“领域 -> 主题/章节 -> 最小学习节点”拆分。
+3. 最小学习节点必须相对独立，能在一次学习或一次练习中推进。
+4. 给出每个节点的 priority：1=必会，2=重点，3=了解。
+5. 给出建议的 source 和 note。
+
+请返回 JSON，格式如下：
+{
+  "nodes": [
+    {
+      "title": "领域名称",
+      "kind": "topic",
+      "priority": 2,
+      "source": "资料来源",
+      "note": "学习目标",
+      "children": [
+        {
+          "title": "最小学习节点",
+          "kind": "task",
+          "priority": 1,
+          "source": "章节/链接/题号",
+          "note": "完成标准",
+          "children": []
+        }
+      ]
+    }
+  ]
+}
+
+当前学习地图摘要：
+${leaves().map(item => `- ${item.node.title}：${STATES[item.node.mastery || 0]}`).join('\n')}
+
+资料如下：
+`;
+  document.getElementById('ai-text').value = prompt;
+  document.getElementById('ai-modal').classList.add('show');
+}
+
+function closeAiPrompt() {
+  document.getElementById('ai-modal').classList.remove('show');
+}
+
+function copyAiPrompt() {
+  navigator.clipboard.writeText(document.getElementById('ai-text').value).then(() => toast('已复制'));
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+render();
+</script>
+</body>
+</html>
