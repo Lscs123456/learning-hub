@@ -53,6 +53,7 @@
   .module-stats { display: flex; gap: 10px; flex-wrap: wrap; }
   .mstat { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
   .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .empty { grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: var(--text-hint); font-size: 13px; }
 
   .legend-section { margin-bottom: 2rem; }
   .legend-title { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
@@ -110,30 +111,7 @@
 </div>
 
 <script>
-const MODULES = [
-  {
-    id: 'lc',
-    icon: '⚡',
-    name: 'LeetCode 刷题',
-    desc: '算法题追踪 · 17 大类 · 109 题',
-    href: 'leetcode.html',
-    key: 'lc_tracker_v2',
-    total: 109,
-    topLabel: '题破',
-    fillCls: 'lc-fill',
-  },
-  {
-    id: 'llm',
-    icon: '🧠',
-    name: 'LLM 八股文',
-    desc: '大模型知识地图 · 7 大模块',
-    href: 'llm.html',
-    key: 'llm_tracker_v2',
-    total: 35,
-    topLabel: '融汇',
-    fillCls: 'llm-fill',
-  },
-];
+let MODULES = [];
 
 const STATE_LABELS = ['未标记','初识','能讲','能用',''];
 const DOTS = ['var(--s0)','var(--s1-border)','var(--s2-border)','var(--s3-border)','var(--s4-border)'];
@@ -169,7 +147,25 @@ function render() {
   }).join('');
 }
 
-render();
+async function loadModules() {
+  const el = document.getElementById('modules');
+  try {
+    const res = await fetch('data/modules.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    MODULES = await res.json();
+    await Promise.all(MODULES.map(async m => {
+      const dataRes = await fetch(m.data);
+      if (!dataRes.ok) throw new Error(`HTTP ${dataRes.status}`);
+      const sections = await dataRes.json();
+      m.total = sections.reduce((sum, sec) => sum + (sec[m.itemField]?.length || 0), 0);
+    }));
+    render();
+  } catch (err) {
+    el.innerHTML = '<div class="empty">模块数据加载失败，请通过 GitHub Pages 或本地静态服务访问页面</div>';
+  }
+}
+
+loadModules();
 </script>
 </body>
 </html>

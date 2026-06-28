@@ -1,0 +1,26 @@
+[
+  {
+    "id": "lc",
+    "icon": "⚡",
+    "name": "LeetCode 刷题",
+    "desc": "算法题追踪 · 17 大类 · 100 题",
+    "href": "leetcode.html",
+    "key": "lc_tracker_v2",
+    "data": "data/leetcode.json",
+    "itemField": "problems",
+    "topLabel": "题破",
+    "fillCls": "lc-fill"
+  },
+  {
+    "id": "llm",
+    "icon": "🧠",
+    "name": "LLM 八股文",
+    "desc": "大模型知识地图 · 5 大模块",
+    "href": "llm.html",
+    "key": "llm_tracker_v2",
+    "data": "data/llm.json",
+    "itemField": "items",
+    "topLabel": "融汇",
+    "fillCls": "llm-fill"
+  }
+]

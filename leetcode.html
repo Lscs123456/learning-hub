@@ -304,70 +304,19 @@ function nextState(id) {
   save(); render();
 }
 
-const DATA = [
-  {cat:'哈希', problems:[
-    {id:1,name:'两数之和',diff:'简单'},{id:49,name:'字母异位词分组',diff:'中等'},{id:128,name:'最长连续序列',diff:'中等'},
-  ]},
-  {cat:'双指针', problems:[
-    {id:283,name:'移动零',diff:'简单'},{id:11,name:'盛最多水的容器',diff:'中等'},{id:15,name:'三数之和',diff:'中等'},{id:42,name:'接雨水',diff:'困难'},
-  ]},
-  {cat:'滑动窗口', problems:[
-    {id:3,name:'无重复字符的最长子串',diff:'中等'},{id:438,name:'找到字符串中所有字母异位词',diff:'中等'},
-  ]},
-  {cat:'子串', problems:[
-    {id:560,name:'和为 K 的子数组',diff:'中等'},{id:239,name:'滑动窗口最大值',diff:'困难'},{id:76,name:'最小覆盖子串',diff:'困难'},
-  ]},
-  {cat:'普通数组', problems:[
-    {id:53,name:'最大子数组和',diff:'中等'},{id:56,name:'合并区间',diff:'中等'},{id:189,name:'轮转数组',diff:'中等'},{id:238,name:'除自身以外数组的乘积',diff:'中等'},{id:41,name:'缺失的第一个正数',diff:'困难'},
-  ]},
-  {cat:'矩阵', problems:[
-    {id:73,name:'矩阵置零',diff:'中等'},{id:54,name:'螺旋矩阵',diff:'中等'},{id:48,name:'旋转图像',diff:'中等'},{id:240,name:'搜索二维矩阵 II',diff:'中等'},
-  ]},
-  {cat:'链表', problems:[
-    {id:160,name:'相交链表',diff:'简单'},{id:206,name:'反转链表',diff:'简单'},{id:234,name:'回文链表',diff:'简单'},{id:141,name:'环形链表',diff:'简单'},
-    {id:142,name:'环形链表 II',diff:'中等'},{id:21,name:'合并两个有序链表',diff:'简单'},{id:2,name:'两数相加',diff:'中等'},
-    {id:19,name:'删除链表的倒数第 N 个结点',diff:'中等'},{id:24,name:'两两交换链表中的节点',diff:'中等'},{id:25,name:'K 个一组翻转链表',diff:'困难'},
-    {id:138,name:'随机链表的复制',diff:'中等'},{id:148,name:'排序链表',diff:'中等'},{id:23,name:'合并 K 个升序链表',diff:'困难'},{id:146,name:'LRU 缓存',diff:'中等'},
-  ]},
-  {cat:'二叉树', problems:[
-    {id:94,name:'二叉树的中序遍历',diff:'简单'},{id:104,name:'二叉树的最大深度',diff:'简单'},{id:226,name:'翻转二叉树',diff:'简单'},
-    {id:101,name:'对称二叉树',diff:'简单'},{id:543,name:'二叉树的直径',diff:'简单'},{id:102,name:'二叉树的层序遍历',diff:'中等'},
-    {id:108,name:'将有序数组转换为二叉搜索树',diff:'简单'},{id:98,name:'验证二叉搜索树',diff:'中等'},{id:230,name:'二叉搜索树中第 K 小的元素',diff:'中等'},
-    {id:199,name:'二叉树的右视图',diff:'中等'},{id:114,name:'二叉树展开为链表',diff:'中等'},{id:105,name:'从前序与中序遍历序列构造二叉树',diff:'中等'},
-    {id:437,name:'路径总和 III',diff:'中等'},{id:236,name:'二叉树的最近公共祖先',diff:'中等'},{id:124,name:'二叉树中的最大路径和',diff:'困难'},
-  ]},
-  {cat:'图论', problems:[
-    {id:200,name:'岛屿数量',diff:'中等'},{id:994,name:'腐烂的橘子',diff:'中等'},{id:207,name:'课程表',diff:'中等'},{id:208,name:'实现 Trie（前缀树）',diff:'中等'},
-  ]},
-  {cat:'回溯', problems:[
-    {id:46,name:'全排列',diff:'中等'},{id:78,name:'子集',diff:'中等'},{id:17,name:'电话号码的字母组合',diff:'中等'},{id:39,name:'组合总和',diff:'中等'},
-    {id:22,name:'括号生成',diff:'中等'},{id:79,name:'单词搜索',diff:'中等'},{id:131,name:'分割回文串',diff:'中等'},{id:51,name:'N 皇后',diff:'困难'},
-  ]},
-  {cat:'二分查找', problems:[
-    {id:35,name:'搜索插入位置',diff:'简单'},{id:74,name:'搜索二维矩阵',diff:'中等'},{id:34,name:'在排序数组中查找元素的第一个和最后一个位置',diff:'中等'},
-    {id:33,name:'搜索旋转排序数组',diff:'中等'},{id:153,name:'寻找旋转排序数组中的最小值',diff:'中等'},{id:4,name:'寻找两个正序数组的中位数',diff:'困难'},
-  ]},
-  {cat:'栈', problems:[
-    {id:20,name:'有效的括号',diff:'简单'},{id:155,name:'最小栈',diff:'中等'},{id:394,name:'字符串解码',diff:'中等'},{id:739,name:'每日温度',diff:'中等'},{id:84,name:'柱状图中最大的矩形',diff:'困难'},
-  ]},
-  {cat:'堆', problems:[
-    {id:215,name:'数组中的第 K 个最大元素',diff:'中等'},{id:347,name:'前 K 个高频元素',diff:'中等'},{id:295,name:'数据流的中位数',diff:'困难'},
-  ]},
-  {cat:'贪心算法', problems:[
-    {id:121,name:'买卖股票的最佳时机',diff:'简单'},{id:55,name:'跳跃游戏',diff:'中等'},{id:45,name:'跳跃游戏 II',diff:'中等'},{id:763,name:'划分字母区间',diff:'中等'},
-  ]},
-  {cat:'动态规划', problems:[
-    {id:70,name:'爬楼梯',diff:'简单'},{id:118,name:'杨辉三角',diff:'简单'},{id:198,name:'打家劫舍',diff:'中等'},{id:279,name:'完全平方数',diff:'中等'},
-    {id:322,name:'零钱兑换',diff:'中等'},{id:139,name:'单词拆分',diff:'中等'},{id:300,name:'最长递增子序列',diff:'中等'},{id:152,name:'乘积最大子数组',diff:'中等'},
-    {id:416,name:'分割等和子集',diff:'中等'},{id:32,name:'最长有效括号',diff:'困难'},
-  ]},
-  {cat:'多维动态规划', problems:[
-    {id:62,name:'不同路径',diff:'中等'},{id:64,name:'最小路径和',diff:'中等'},{id:5,name:'最长回文子串',diff:'中等'},{id:1143,name:'最长公共子序列',diff:'中等'},{id:72,name:'编辑距离',diff:'中等'},
-  ]},
-  {cat:'技巧', problems:[
-    {id:136,name:'只出现一次的数字',diff:'简单'},{id:169,name:'多数元素',diff:'简单'},{id:75,name:'颜色分类',diff:'中等'},{id:31,name:'下一个排列',diff:'中等'},{id:287,name:'寻找重复数',diff:'中等'},
-  ]},
-];
+let DATA = [];
+
+async function loadData() {
+  try {
+    const res = await fetch('data/leetcode.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    DATA = await res.json();
+    render();
+  } catch (err) {
+    document.getElementById('list').innerHTML = '<div class="empty">???????????? GitHub Pages ???????????</div>';
+    toast('????????');
+  }
+}
 
 let filter = 'all';
 function setFilter(f, btn) { filter = f; document.querySelectorAll('.chip').forEach(b => b.classList.remove('on')); btn.classList.add('on'); render(); }
@@ -424,7 +373,7 @@ function render() {
   if(!total)html='<div class="empty">没有匹配的题目</div>';
   document.getElementById('list').innerHTML=html;
 }
-render();
+loadData();
 </script>
 </body>
 </html>
